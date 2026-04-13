@@ -96,10 +96,13 @@ function readCache(): Patent[] | null {
     if (!fs.existsSync(CACHE_PATH)) return null;
     const raw = fs.readFileSync(CACHE_PATH, "utf-8");
     const data = JSON.parse(raw) as { patents: Patent[]; cachedAt: string };
-    // Cache valid for 7 days
-    const age = Date.now() - new Date(data.cachedAt).getTime();
-    if (age > 7 * 24 * 60 * 60 * 1000) return null;
-    return data.patents;
+    // Skip expiry check — committed cache is the primary data source
+    // and can only be refreshed by running prebuild locally
+    // Recompute coordinates from current cluster layout (cache may have stale positions)
+    return data.patents.map(p => {
+      const coords = computeCoordinates(p.category, p.id);
+      return { ...p, x: coords.x, y: coords.y };
+    });
   } catch {
     return null;
   }
