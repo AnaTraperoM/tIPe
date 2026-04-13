@@ -28,6 +28,17 @@ interface Props {
 
 const SIMILARITY_THRESHOLD = 0.12;
 
+// Pre-parse hex colors to [r, g, b] for fast canvas fillStyle construction
+function hexToRgb(hex: string): [number, number, number] {
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+const CATEGORY_RGB: Record<string, [number, number, number]> = {};
+for (const [cat, hex] of Object.entries(CATEGORY_COLORS)) {
+  CATEGORY_RGB[cat] = hexToRgb(hex);
+}
+
 export default function PatentClusterMap({
   patents,
   onSelect,
@@ -48,6 +59,7 @@ export default function PatentClusterMap({
 }: Props) {
   const [conceptQuery, setConceptQuery] = useState("");
   const svgRef = useRef<SVGSVGElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const minimapRef = useRef<SVGSVGElement>(null);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; patent: Patent } | null>(null);
@@ -55,13 +67,25 @@ export default function PatentClusterMap({
   const xScaleRef = useRef<d3.ScaleLinear<number, number>>(d3.scaleLinear());
   const yScaleRef = useRef<d3.ScaleLinear<number, number>>(d3.scaleLinear());
 
-  // Persistent D3 layer group refs
+  // Persistent D3 layer group refs (SVG overlays only)
   const contoursGRef = useRef<d3.Selection<SVGGElement, unknown, null, undefined> | null>(null);
-  const dotsGRef = useRef<d3.Selection<SVGGElement, unknown, null, undefined> | null>(null);
   const hullGRef = useRef<d3.Selection<SVGGElement, unknown, null, undefined> | null>(null);
   const uploadGRef = useRef<d3.Selection<SVGGElement, unknown, null, undefined> | null>(null);
   const rootGRef = useRef<d3.Selection<SVGGElement, unknown, null, undefined> | null>(null);
   const dimsRef = useRef<{ W: number; H: number }>({ W: 0, H: 0 });
+
+  // Ref to hold the canvas redraw function so zoom can call it
+  const redrawDotsRef = useRef<() => void>(() => {});
+
+  // Refs for latest callback values (avoids stale closures in event handlers)
+  const drawModeRef = useRef(drawMode);
+  drawModeRef.current = drawMode;
+  const onSelectRef = useRef(onSelect);
+  onSelectRef.current = onSelect;
+  const onToggleCompareRef = useRef(onToggleCompare);
+  onToggleCompareRef.current = onToggleCompare;
+  const patentsRef = useRef(patents);
+  patentsRef.current = patents;
 
   // Drawing state
   const [drawCircle, setDrawCircle] = useState<{ startX: number; startY: number; curX: number; curY: number } | null>(null);
@@ -116,29 +140,56 @@ export default function PatentClusterMap({
     return map;
   }, [patents]);
 
-  // ── Setup effect: SVG skeleton, scales, zoom, defs, layer groups ──
+  // Find nearest patent to a screen coordinate (for hover/click hit-testing)
+  // Uses refs so it always reads the latest patents without being a dep
+  function findNearest(screenX: number, screenY: number): Patent | null {
+    const t = transformRef.current;
+    const xScale = xScaleRef.current;
+    const yScale = yScaleRef.current;
+    const pts = patentsRef.current;
+
+    let best: Patent | null = null;
+    let bestDistSq = 12 * 12; // 12px threshold, squared to avoid sqrt
+
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i];
+      const px = t.x + t.k * xScale(p.x);
+      const py = t.y + t.k * yScale(p.y);
+      const dx = px - screenX;
+      const dy = py - screenY;
+      const distSq = dx * dx + dy * dy;
+      if (distSq < bestDistSq) {
+        bestDistSq = distSq;
+        best = p;
+      }
+    }
+    return best;
+  }
+
+  // ── Setup effect: SVG skeleton, canvas sizing, scales, zoom ──
+  // Only re-runs when patent data changes (full rebuild of scales/groups)
   useEffect(() => {
     const container = containerRef.current;
     const svg = svgRef.current;
-    if (!container || !svg) return;
+    const canvas = canvasRef.current;
+    if (!container || !svg || !canvas) return;
 
     const W = container.clientWidth;
     const H = container.clientHeight;
     dimsRef.current = { W, H };
+
+    // Size the canvas (account for devicePixelRatio for crisp rendering)
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width = `${W}px`;
+    canvas.style.height = `${H}px`;
+    const ctx = canvas.getContext("2d")!;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // Setup SVG (on top, handles zoom events; overlays are pointer-events: none children)
     const root = d3.select(svg).attr("width", W).attr("height", H);
     root.selectAll("*").remove();
-
-    // Defs: glow filters per category
-    const defs = root.append("defs");
-    Object.entries(CATEGORY_COLORS).forEach(([cat, color]) => {
-      const filterId = `glow-${cat.replace(/[^a-zA-Z0-9]/g, "-")}`;
-      const filter = defs.append("filter").attr("id", filterId).attr("x", "-50%").attr("y", "-50%").attr("width", "200%").attr("height", "200%");
-      filter.append("feGaussianBlur").attr("in", "SourceGraphic").attr("stdDeviation", "2.5").attr("result", "blur");
-      const merge = filter.append("feMerge");
-      merge.append("feMergeNode").attr("in", "blur");
-      merge.append("feMergeNode").attr("in", "SourceGraphic");
-      void color;
-    });
 
     const g = root.append("g");
     rootGRef.current = g;
@@ -148,10 +199,9 @@ export default function PatentClusterMap({
     xScaleRef.current = xScale;
     yScaleRef.current = yScale;
 
-    // Create persistent layer groups in correct z-order
+    // SVG layer groups in z-order
     contoursGRef.current = g.append("g").attr("class", "contours-layer");
     hullGRef.current = g.append("g").attr("class", "hull-layer");
-    dotsGRef.current = g.append("g").attr("class", "dots-layer");
     uploadGRef.current = g.append("g").attr("class", "upload-layer");
 
     const zoom = d3.zoom<SVGSVGElement, unknown>()
@@ -159,9 +209,36 @@ export default function PatentClusterMap({
       .on("zoom", (event) => {
         g.attr("transform", event.transform);
         transformRef.current = event.transform;
+        redrawDotsRef.current();
         updateMinimap();
       });
     root.call(zoom);
+
+    // Mouse handlers on SVG for dot hit-testing.
+    // Use refs for callbacks/state to avoid needing these as deps.
+    root.on("mousemove.hittest", function (event: MouseEvent) {
+      if (drawModeRef.current) return;
+      const [mx, my] = d3.pointer(event, this);
+      const nearest = findNearest(mx, my);
+      if (nearest) {
+        setTooltip({ x: mx, y: my, patent: nearest });
+      } else {
+        setTooltip(null);
+      }
+    });
+
+    root.on("click.hittest", function (event: MouseEvent) {
+      if (drawModeRef.current) return;
+      const [mx, my] = d3.pointer(event, this);
+      const nearest = findNearest(mx, my);
+      if (!nearest) return;
+      if (event.shiftKey) onToggleCompareRef.current(nearest);
+      else onSelectRef.current(nearest);
+    });
+
+    root.on("mouseleave.hittest", () => {
+      setTooltip(null);
+    });
 
     // Mini-map
     function updateMinimap() {
@@ -205,10 +282,10 @@ export default function PatentClusterMap({
     }
 
     updateMinimap();
-    // Setup only re-runs when patent data changes (triggers full rebuild of scales/groups)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patents]);
 
-  // ── Effect 1: Static contours (most expensive) ──
+  // ── Effect 1: Static contours (SVG -- most expensive, only on data change) ──
   useEffect(() => {
     const contoursG = contoursGRef.current;
     if (!contoursG) return;
@@ -240,106 +317,128 @@ export default function PatentClusterMap({
     }
   }, [patentsByCategory]);
 
-  // ── Effect 2: Dots/circles rendering ──
+  // ── Effect 2: Canvas dot rendering ──
   useEffect(() => {
-    const dotsG = dotsGRef.current;
-    if (!dotsG) return;
-    const xScale = xScaleRef.current;
-    const yScale = yScaleRef.current;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d")!;
+    const dpr = window.devicePixelRatio || 1;
 
-    dotsG.selectAll("*").remove();
+    function drawDots() {
+      const { W, H } = dimsRef.current;
+      const xScale = xScaleRef.current;
+      const yScale = yScaleRef.current;
+      const t = transformRef.current;
 
-    // Similarity radius ring
-    if (selected) {
-      const cx = xScale(selected.x);
-      const cy = yScale(selected.y);
-      const rPx = xScale(similarityRadius) - xScale(0);
+      // Clear entire canvas
+      ctx.save();
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, W, H);
 
-      dotsG.append("circle")
-        .attr("class", "similarity-ring")
-        .attr("cx", cx).attr("cy", cy)
-        .attr("r", rPx)
-        .attr("fill", `${CATEGORY_COLORS[selected.category] ?? "#7c6af7"}12`)
-        .attr("stroke", CATEGORY_COLORS[selected.category] ?? "#7c6af7")
-        .attr("stroke-width", 1)
-        .attr("stroke-dasharray", "5 3")
-        .attr("stroke-opacity", 0.5);
+      // Apply zoom transform
+      ctx.translate(t.x, t.y);
+      ctx.scale(t.k, t.k);
+
+      const hasConceptMatches = conceptMatches && conceptMatches.size > 0;
+      const simRadPx = xScale(similarityRadius) - xScale(0);
+
+      // Draw similarity radius ring if a patent is selected
+      if (selected) {
+        const cx = xScale(selected.x);
+        const cy = yScale(selected.y);
+        const rgb = CATEGORY_RGB[selected.category] ?? [124, 106, 247];
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, simRadPx, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.07)`;
+        ctx.fill();
+        ctx.strokeStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.5)`;
+        ctx.lineWidth = 1 / t.k;
+        ctx.setLineDash([5 / t.k, 3 / t.k]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      // Pre-compute selected coords for distance checks
+      const selX = selected ? selected.x : 0;
+      const selY = selected ? selected.y : 0;
+
+      // Draw all dots
+      for (let i = 0; i < patents.length; i++) {
+        const p = patents[i];
+        const isSel = selected?.id === p.id;
+        const inCompare = compareSet.has(p.id);
+        const isConcept = hasConceptMatches ? conceptMatches!.has(p.id) : false;
+
+        let inRadius = false;
+        if (selected && !isSel) {
+          const ddx = p.x - selX;
+          const ddy = p.y - selY;
+          inRadius = Math.sqrt(ddx * ddx + ddy * ddy) < similarityRadius;
+        }
+
+        // Radius (scaled by inverse zoom to keep screen size constant)
+        let r: number;
+        if (isSel) r = 7;
+        else if (inCompare) r = 5.5;
+        else if (isConcept) r = 5;
+        else if (inRadius) r = 5;
+        else r = 3.5;
+        r = r / t.k;
+
+        // Opacity
+        let alpha: number;
+        if (isSel) alpha = 1;
+        else if (hasConceptMatches) alpha = isConcept ? 1 : 0.1;
+        else if (!selected) alpha = 0.8;
+        else alpha = (inRadius || inCompare) ? 0.9 : 0.25;
+
+        const rgb = CATEGORY_RGB[p.category] ?? [136, 136, 136];
+        const cx = xScale(p.x);
+        const cy = yScale(p.y);
+
+        // Glow effect for selected patent
+        if (isSel) {
+          ctx.save();
+          ctx.shadowColor = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.7)`;
+          ctx.shadowBlur = 8 / t.k;
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${alpha})`;
+          ctx.fill();
+          ctx.restore();
+        } else {
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${alpha})`;
+          ctx.fill();
+        }
+
+        // Stroke rings
+        if (isSel || inCompare) {
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 2 / t.k;
+          ctx.stroke();
+        } else if (isConcept) {
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.strokeStyle = "#6366f1";
+          ctx.lineWidth = 1.5 / t.k;
+          ctx.stroke();
+        }
+      }
+
+      ctx.restore();
     }
 
-    // Dots
-    dotsG.selectAll<SVGCircleElement, Patent>("circle.patent")
-      .data(patents, (d) => d.id)
-      .join("circle")
-      .attr("class", "patent")
-      .attr("cx", (d) => xScale(d.x))
-      .attr("cy", (d) => yScale(d.y))
-      .attr("r", (d) => {
-        if (selected?.id === d.id) return 7;
-        if (compareSet.has(d.id)) return 5.5;
-        if (selected) {
-          const dx = d.x - selected.x;
-          const dy = d.y - selected.y;
-          if (Math.sqrt(dx * dx + dy * dy) < similarityRadius) return 5;
-        }
-        return 3.5;
-      })
-      .attr("fill", (d) => CATEGORY_COLORS[d.category] ?? "#888")
-      .attr("stroke", (d) => {
-        if (compareSet.has(d.id)) return "#ffffff";
-        if (selected?.id === d.id) return "#ffffff";
-        if (conceptMatches?.has(d.id)) return "#6366f1";
-        return "none";
-      })
-      .attr("stroke-width", (d) => {
-        if (compareSet.has(d.id) || selected?.id === d.id) return 2;
-        if (conceptMatches?.has(d.id)) return 1.5;
-        return 0;
-      })
-      .attr("fill-opacity", (d) => {
-        if (selected?.id === d.id) return 1;
-        if (conceptMatches?.size) {
-          return conceptMatches.has(d.id) ? 1 : 0.1;
-        }
-        if (!selected) return 0.8;
-        const dx = d.x - selected.x;
-        const dy = d.y - selected.y;
-        const inRadius = Math.sqrt(dx * dx + dy * dy) < similarityRadius;
-        return inRadius || compareSet.has(d.id) ? 0.9 : 0.25;
-      })
-      .attr("filter", (d) => selected?.id === d.id ? `url(#glow-${d.category.replace(/\s+/g, "-")})` : null)
-      .style("cursor", "pointer")
-      .on("mouseenter", (event, d) => {
-        if (drawMode) return;
-        d3.select(event.currentTarget).attr("r", 7).attr("fill-opacity", 1);
-        setTooltip({ x: event.offsetX, y: event.offsetY, patent: d });
-      })
-      .on("mouseleave", (event, d) => {
-        const isSel = selected?.id === d.id;
-        const inCompare = compareSet.has(d.id);
-        const isConcept = conceptMatches?.has(d.id) ?? false;
-        const dx = selected ? d.x - selected.x : 1;
-        const dy = selected ? d.y - selected.y : 1;
-        const inRadius = selected ? Math.sqrt(dx * dx + dy * dy) < similarityRadius : false;
-        let opacity: number;
-        if (isSel) opacity = 1;
-        else if (conceptMatches?.size) opacity = isConcept ? 0.95 : 0.1;
-        else if (!selected) opacity = 0.8;
-        else opacity = inRadius || inCompare ? 0.9 : 0.25;
-        d3.select(event.currentTarget)
-          .attr("r", isSel ? 7 : inCompare ? 5.5 : isConcept ? 5 : inRadius ? 5 : 3.5)
-          .attr("fill-opacity", opacity)
-          .attr("stroke", isSel || inCompare ? "#ffffff" : isConcept ? "#6366f1" : "none")
-          .attr("stroke-width", isSel || inCompare ? 2 : isConcept ? 1.5 : 0);
-        setTooltip(null);
-      })
-      .on("click", (event, d) => {
-        if (drawMode) return;
-        if (event.shiftKey) onToggleCompare(d);
-        else onSelect(d);
-      });
-  }, [patents, selected, compareSet, similarityRadius, drawMode, onSelect, onToggleCompare, conceptMatches]);
+    // Store for zoom handler
+    redrawDotsRef.current = drawDots;
+    drawDots();
+  }, [patents, selected, compareSet, similarityRadius, conceptMatches]);
 
-  // ── Effect 3: Search hull ──
+  // ── Effect 3: Search hull (SVG) ──
   useEffect(() => {
     const hullG = hullGRef.current;
     if (!hullG) return;
@@ -371,7 +470,7 @@ export default function PatentClusterMap({
     }
   }, [patents, showSearchHull]);
 
-  // ── Effect 4: Upload point ──
+  // ── Effect 4: Upload point (SVG) ──
   useEffect(() => {
     const uploadG = uploadGRef.current;
     if (!uploadG) return;
@@ -403,13 +502,24 @@ export default function PatentClusterMap({
 
   return (
     <div ref={containerRef} className="relative w-full h-full">
-      <svg ref={svgRef} className="w-full h-full" style={{ background: "var(--background)" }} />
+      {/* Canvas layer for dots (behind SVG) */}
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0"
+        style={{ zIndex: 1, pointerEvents: "none" }}
+      />
+      {/* SVG on top: zoom surface + contours/hull/upload overlays */}
+      <svg
+        ref={svgRef}
+        className="absolute inset-0 w-full h-full"
+        style={{ zIndex: 2, background: "transparent", cursor: drawMode ? "default" : "pointer" }}
+      />
 
-      {/* Draw mode overlay — captures mouse for circle selection */}
+      {/* Draw mode overlay -- captures mouse for circle selection */}
       {drawMode && (
         <div
           className="absolute inset-0"
-          style={{ cursor: "crosshair", zIndex: 5 }}
+          style={{ cursor: "crosshair", zIndex: 10 }}
           onMouseDown={handleDrawStart}
           onMouseMove={handleDrawMove}
           onMouseUp={handleDrawEnd}
@@ -421,7 +531,7 @@ export default function PatentClusterMap({
       {circle && circle.r > 4 && (
         <svg
           className="absolute inset-0 pointer-events-none"
-          style={{ width: "100%", height: "100%", zIndex: 6 }}
+          style={{ width: "100%", height: "100%", zIndex: 11 }}
         >
           <circle
             cx={circle.cx}
@@ -436,7 +546,7 @@ export default function PatentClusterMap({
       )}
 
       {tooltip && !drawMode && (
-        <div className="patent-tooltip" style={{ left: tooltip.x + 14, top: tooltip.y - 10 }}>
+        <div className="patent-tooltip" style={{ left: tooltip.x + 14, top: tooltip.y - 10, zIndex: 20 }}>
           <div style={{ color: CATEGORY_COLORS[tooltip.patent.category], fontSize: 10, fontWeight: 600, marginBottom: 2 }}>
             {tooltip.patent.category} · {tooltip.patent.year}
           </div>
@@ -448,8 +558,8 @@ export default function PatentClusterMap({
         </div>
       )}
 
-      {/* ☰ Drawer toggle + concept search */}
-      <div className="absolute top-3 left-3 flex flex-col gap-2" style={{ zIndex: 10, width: 280 }}>
+      {/* Drawer toggle + concept search */}
+      <div className="absolute top-3 left-3 flex flex-col gap-2" style={{ zIndex: 15, width: 280 }}>
         <button
           onClick={onToggleDrawer}
           className="self-start flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all hover:shadow-sm"
@@ -509,7 +619,7 @@ export default function PatentClusterMap({
       {/* Draw mode button */}
       <div
         className="absolute top-3 right-3 flex gap-1 rounded-lg p-1"
-        style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 1px 4px rgba(15,23,42,0.06)" }}
+        style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 1px 4px rgba(15,23,42,0.06)", zIndex: 15 }}
       >
         <button
           onClick={() => onDrawModeChange(!drawMode)}
@@ -527,14 +637,14 @@ export default function PatentClusterMap({
       {/* Mini-map */}
       <div
         className="absolute top-12 right-3 rounded-lg overflow-hidden"
-        style={{ width: 120, height: 80, background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 1px 4px rgba(15,23,42,0.06)" }}
+        style={{ width: 120, height: 80, background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 1px 4px rgba(15,23,42,0.06)", zIndex: 15 }}
       >
         <svg ref={minimapRef} width={120} height={80} />
       </div>
 
       {/* Compare badge */}
       {compareSet.size >= 1 && (
-        <div className="absolute bottom-3 right-3">
+        <div className="absolute bottom-3 right-3" style={{ zIndex: 15 }}>
           <div className="text-xs px-3 py-1.5 rounded-lg font-medium"
             style={{ background: "var(--accent)", color: "#fff", boxShadow: "0 2px 8px rgba(99,102,241,0.3)" }}>
             {compareSet.size} selected — Shift+click to add · see Compare tab
@@ -542,10 +652,9 @@ export default function PatentClusterMap({
         </div>
       )}
 
-
       {/* Loading overlay */}
       {searching && (
-        <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(248,250,252,0.85)", zIndex: 10 }}>
+        <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(248,250,252,0.85)", zIndex: 20 }}>
           <div className="flex items-center gap-2 text-sm px-4 py-3 rounded-xl" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--muted)", boxShadow: "0 4px 16px rgba(15,23,42,0.08)" }}>
             <svg className="animate-spin" width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth={2.5}>
               <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
