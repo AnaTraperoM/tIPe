@@ -56,7 +56,7 @@ export default function UploadAnalysis({ result, onSelectPatent }: Props) {
 
       {/* Space / landscape summary */}
       {result.spaceSummary && (
-        <div className="rounded-lg p-3" style={{ background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.15)" }}>
+        <div className="rounded-lg p-3" style={{ background: "rgba(226,232,240,0.06)", border: "1px solid rgba(226,232,240,0.15)" }}>
           <div className="flex items-center gap-1.5 mb-1.5">
             <MapPin size={12} style={{ color: "var(--accent-light)" }} />
             <span className="text-xs font-semibold" style={{ color: "var(--accent-light)" }}>Patent landscape</span>

@@ -195,7 +195,7 @@ export default function Sidebar({
           <div className="flex flex-col gap-4">
             {/* Query interpretation banner */}
             {queryInterpretation && (
-              <div className="rounded-xl p-3 flex flex-col gap-2" style={{ background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.2)" }}>
+              <div className="rounded-xl p-3 flex flex-col gap-2" style={{ background: "rgba(226,232,240,0.06)", border: "1px solid rgba(226,232,240,0.2)" }}>
                 {queryInterpretation.correctedQuery !== queryInterpretation.keywords.join(" ") && (
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-xs font-semibold" style={{ color: "var(--accent)" }}>Searching for:</span>
@@ -207,7 +207,7 @@ export default function Sidebar({
                   <div className="flex flex-wrap gap-1">
                     {queryInterpretation.keywords.slice(0, 8).map(kw => (
                       <span key={kw} className="text-xs px-1.5 py-0.5 rounded"
-                        style={{ background: "rgba(99,102,241,0.1)", color: "var(--accent)", fontSize: 10 }}>
+                        style={{ background: "rgba(226,232,240,0.1)", color: "var(--accent)", fontSize: 10 }}>
                         {kw}
                       </span>
                     ))}
@@ -493,7 +493,7 @@ export default function Sidebar({
                     <div className="flex flex-wrap gap-1">
                       {translation.technicalFields.map((f) => (
                         <span key={f} className="text-xs px-1.5 py-0.5 rounded"
-                          style={{ background: "rgba(99,102,241,0.15)", color: "var(--accent-light)" }}>
+                          style={{ background: "rgba(226,232,240,0.15)", color: "var(--accent-light)" }}>
                           {f}
                         </span>
                       ))}
@@ -589,7 +589,7 @@ export default function Sidebar({
                   <button
                     onClick={() => onAnalyzeIdea(ideaText)}
                     className="text-xs font-medium py-2 px-4 rounded-lg transition-opacity hover:opacity-90 w-full"
-                    style={{ background: "var(--accent)", color: "#fff" }}
+                    style={{ background: "var(--accent)", color: "#0a0a0f" }}
                   >
                     Analyze idea
                   </button>
@@ -613,7 +613,7 @@ export default function Sidebar({
                 className="relative flex flex-col items-center justify-center gap-2 rounded-xl p-4 cursor-pointer transition-colors"
                 style={{
                   border: `2px dashed ${dragOver ? "var(--accent)" : "var(--border)"}`,
-                  background: dragOver ? "rgba(99,102,241,0.06)" : "var(--surface-2)",
+                  background: dragOver ? "rgba(226,232,240,0.06)" : "var(--surface-2)",
                   minHeight: 80,
                 }}
               >
@@ -631,7 +631,7 @@ export default function Sidebar({
 
             {uploadedFile && !uploadResult && !uploadLoading && (
               <div className="flex items-center gap-2 rounded-lg px-3 py-2"
-                style={{ background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.3)" }}>
+                style={{ background: "rgba(226,232,240,0.1)", border: "1px solid rgba(226,232,240,0.3)" }}>
                 <FileText size={14} style={{ color: "var(--accent-light)" }} />
                 <span className="text-xs truncate flex-1" style={{ color: "var(--accent-light)" }}>{uploadedFile}</span>
                 <button onClick={() => setUploadedFile(null)} style={{ color: "var(--muted)" }}>

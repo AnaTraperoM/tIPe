@@ -310,8 +310,8 @@ export default function PatentClusterMap({
         .attr("d", d3.geoPath())
         .attr("fill", color)
         .attr("fill-opacity", (_, i) => (i + 1) * 0.015)
-        .attr("stroke", "rgba(255,255,255,0.12)")
-        .attr("stroke-opacity", (_, i) => 0.06 + i * 0.025)
+        .attr("stroke", "#ffffff")
+        .attr("stroke-opacity", (_, i) => 0.04 + i * 0.02)
         .attr("stroke-width", 0.5)
         .attr("stroke-linejoin", "round");
     }
@@ -418,7 +418,7 @@ export default function PatentClusterMap({
         } else if (isConcept) {
           ctx.beginPath();
           ctx.arc(cx, cy, r + 0.5 / t.k, 0, Math.PI * 2);
-          ctx.strokeStyle = "rgba(129,140,248,0.7)";
+          ctx.strokeStyle = "rgba(226,232,240,0.7)";
           ctx.lineWidth = 1.2 / t.k;
           ctx.stroke();
         }
@@ -455,8 +455,8 @@ export default function PatentClusterMap({
         hullG.append("path")
           .attr("class", "search-hull")
           .attr("d", `M${padded.map(p => p.join(",")).join("L")}Z`)
-          .attr("fill", "rgba(99,102,241,0.05)")
-          .attr("stroke", "rgba(99,102,241,0.3)")
+          .attr("fill", "rgba(226,232,240,0.05)")
+          .attr("stroke", "rgba(226,232,240,0.3)")
           .attr("stroke-width", 1.5)
           .attr("stroke-dasharray", "6 3")
           .attr("stroke-linejoin", "round");
@@ -531,8 +531,8 @@ export default function PatentClusterMap({
             cx={circle.cx}
             cy={circle.cy}
             r={circle.r}
-            fill="rgba(99,102,241,0.05)"
-            stroke="rgba(99,102,241,0.55)"
+            fill="rgba(226,232,240,0.05)"
+            stroke="rgba(226,232,240,0.55)"
             strokeWidth={1.5}
             strokeDasharray="6 3"
           />
@@ -640,7 +640,7 @@ export default function PatentClusterMap({
       {compareSet.size >= 1 && (
         <div className="absolute bottom-3 right-3" style={{ zIndex: 15 }}>
           <div className="text-xs px-3 py-1.5 rounded-lg font-medium"
-            style={{ background: "var(--accent)", color: "#fff", boxShadow: "0 2px 8px rgba(99,102,241,0.3)" }}>
+            style={{ background: "var(--accent)", color: "#0a0a0f", boxShadow: "0 2px 8px rgba(226,232,240,0.15)" }}>
             {compareSet.size} selected — Shift+click to add · see Compare tab
           </div>
         </div>

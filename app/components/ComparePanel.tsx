@@ -139,7 +139,7 @@ export default function ComparePanel({ patents, result, loading, onCompare, onRe
             </div>
 
             {/* Novelty assessment */}
-            <div className="rounded-lg p-3" style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.3)" }}>
+            <div className="rounded-lg p-3" style={{ background: "rgba(226,232,240,0.08)", border: "1px solid rgba(226,232,240,0.3)" }}>
               <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--accent-light)" }}>Novelty Assessment</div>
               <p className="text-xs leading-relaxed" style={{ color: "#94a3b8" }}>{result.noveltyAssessment}</p>
             </div>
