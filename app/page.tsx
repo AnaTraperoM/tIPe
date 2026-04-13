@@ -18,6 +18,7 @@ import type {
   QueryInterpretation,
 } from "./lib/types";
 import { CATEGORY_COLORS } from "./lib/mock-data";
+import { computeCoordinates } from "./lib/embeddings";
 
 export default function Home() {
   // Patent data
@@ -252,20 +253,23 @@ export default function Home() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/patents/load?limit=10000");
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({ error: "Load failed" }));
-          throw new Error(body.error ?? "Load failed");
-        }
-        const data = await res.json();
+        // Fetch static cache file directly from CDN (works on Vercel without serverless fs)
+        const res = await fetch("/data/patents-cache.json");
+        if (!res.ok) throw new Error(`Cache fetch failed: ${res.status}`);
+        const data = await res.json() as { patents: Patent[]; cachedAt: string };
         if (!cancelled) {
-          setPatents(data.patents);
-          setDataSource(data.source);
+          // Recompute coordinates client-side from current cluster layout
+          const withCoords = data.patents.map(p => {
+            const coords = computeCoordinates(p.category, p.id);
+            return { ...p, x: coords.x, y: coords.y };
+          });
+          setPatents(withCoords);
+          setDataSource("bigquery");
         }
       } catch (err) {
         if (!cancelled) {
           setDataSource("error");
-          showError(err instanceof Error ? err.message : "Failed to load patents from BigQuery.");
+          showError(err instanceof Error ? err.message : "Failed to load patent data.");
         }
       }
     })();
