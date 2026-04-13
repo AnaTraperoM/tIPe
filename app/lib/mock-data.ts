@@ -3,46 +3,46 @@ import type { Patent, CitationGraph } from "./types";
 // ─── Colour palette ──────────────────────────────────────────────────────────
 // L2 subcategory → hex colour (used for dot / chip rendering)
 export const CATEGORY_COLORS: Record<string, string> = {
-  // AI & Machine Learning family — soft lavender
-  "Natural Language Processing": "#c4b5fd",
-  "Computer Vision":             "#b4a5f0",
-  "Reinforcement Learning":      "#d4c5ff",
-  "AI Hardware & Chips":         "#a5b4fc",
-  // Biotechnology family — soft sage/mint
-  "Gene Editing":                "#86efac",
-  "Drug Discovery":              "#a7f3d0",
-  "Synthetic Biology":           "#6ee7b7",
-  "Diagnostics & Imaging":       "#bbf7d0",
-  // Semiconductors family — soft amber/peach
-  "Memory & Storage":            "#fde68a",
-  "Processor Architecture":      "#fcd34d",
-  "Advanced Packaging":          "#fed7aa",
-  "Photonics & Optics":          "#fbbf24",
-  // Robotics & Automation family — soft coral
-  "Autonomous Vehicles":         "#fca5a5",
-  "Industrial Automation":       "#fda4af",
-  "Drone Technology":            "#fecaca",
-  "Humanoid Robots":             "#feb2b2",
-  // Telecommunications family — soft sky blue
-  "5G & 6G Networks":            "#93c5fd",
-  "Satellite Communication":     "#a5d8ff",
-  "Network Security":            "#7dd3fc",
-  "IoT & Edge Computing":        "#bae6fd",
-  // Clean Energy family — soft lime/chartreuse
-  "Solar Energy":                "#bef264",
-  "Battery Technology":          "#d9f99d",
-  "Hydrogen & Fuel Cells":       "#a3e635",
-  "Wind & Ocean Energy":         "#ecfccb",
-  // Healthcare Tech family — soft rose
-  "Medical Devices":             "#f9a8d4",
-  "Digital Health":              "#fbcfe8",
-  "Neurotechnology":             "#f0abfc",
-  "Precision Medicine":          "#fce7f3",
-  // Advanced Manufacturing family — soft teal
-  "3D Printing & Additive":      "#99f6e4",
-  "Smart Materials":             "#5eead4",
-  "Quantum Technology":          "#67e8f9",
-  "Space Technology":            "#a5f3fc",
+  // AI & Machine Learning family — deep violet
+  "Natural Language Processing": "#8b7cf6",
+  "Computer Vision":             "#7c6ce8",
+  "Reinforcement Learning":      "#9b8cf8",
+  "AI Hardware & Chips":         "#7b8af0",
+  // Biotechnology family — deep emerald
+  "Gene Editing":                "#34d399",
+  "Drug Discovery":              "#4ade80",
+  "Synthetic Biology":           "#2dd4a0",
+  "Diagnostics & Imaging":       "#5ce0a0",
+  // Semiconductors family — deep amber
+  "Memory & Storage":            "#f0b429",
+  "Processor Architecture":      "#e09f1f",
+  "Advanced Packaging":          "#f0a050",
+  "Photonics & Optics":          "#d4940a",
+  // Robotics & Automation family — deep coral/rose
+  "Autonomous Vehicles":         "#f87171",
+  "Industrial Automation":       "#fb7185",
+  "Drone Technology":            "#f97066",
+  "Humanoid Robots":             "#e8585a",
+  // Telecommunications family — deep sky blue
+  "5G & 6G Networks":            "#60a5fa",
+  "Satellite Communication":     "#6db6f0",
+  "Network Security":            "#38bdf8",
+  "IoT & Edge Computing":        "#7cc4f0",
+  // Clean Energy family — deep lime
+  "Solar Energy":                "#84cc16",
+  "Battery Technology":          "#a3e635",
+  "Hydrogen & Fuel Cells":       "#65a30d",
+  "Wind & Ocean Energy":         "#9ac020",
+  // Healthcare Tech family — deep pink/magenta
+  "Medical Devices":             "#ec4899",
+  "Digital Health":              "#f472b6",
+  "Neurotechnology":             "#c084fc",
+  "Precision Medicine":          "#e470a8",
+  // Advanced Manufacturing family — deep teal/cyan
+  "3D Printing & Additive":      "#2dd4bf",
+  "Smart Materials":             "#14b8a6",
+  "Quantum Technology":          "#22d3ee",
+  "Space Technology":            "#38bcc8",
 };
 
 // ─── Domain (L1) hierarchy ────────────────────────────────────────────────────
@@ -55,42 +55,42 @@ export interface DomainDef {
 export const DOMAIN_HIERARCHY: DomainDef[] = [
   {
     name: "AI & Machine Learning",
-    color: "#c4b5fd",
+    color: "#8b7cf6",
     subcategories: ["Natural Language Processing", "Computer Vision", "Reinforcement Learning", "AI Hardware & Chips"],
   },
   {
     name: "Biotechnology",
-    color: "#86efac",
+    color: "#34d399",
     subcategories: ["Gene Editing", "Drug Discovery", "Synthetic Biology", "Diagnostics & Imaging"],
   },
   {
     name: "Semiconductors",
-    color: "#fde68a",
+    color: "#f0b429",
     subcategories: ["Memory & Storage", "Processor Architecture", "Advanced Packaging", "Photonics & Optics"],
   },
   {
     name: "Robotics & Automation",
-    color: "#fca5a5",
+    color: "#f87171",
     subcategories: ["Autonomous Vehicles", "Industrial Automation", "Drone Technology", "Humanoid Robots"],
   },
   {
     name: "Telecommunications",
-    color: "#93c5fd",
+    color: "#60a5fa",
     subcategories: ["5G & 6G Networks", "Satellite Communication", "Network Security", "IoT & Edge Computing"],
   },
   {
     name: "Clean Energy",
-    color: "#bef264",
+    color: "#84cc16",
     subcategories: ["Solar Energy", "Battery Technology", "Hydrogen & Fuel Cells", "Wind & Ocean Energy"],
   },
   {
     name: "Healthcare Technology",
-    color: "#fbcfe8",
+    color: "#ec4899",
     subcategories: ["Medical Devices", "Digital Health", "Neurotechnology", "Precision Medicine"],
   },
   {
     name: "Advanced Manufacturing",
-    color: "#99f6e4",
+    color: "#2dd4bf",
     subcategories: ["3D Printing & Additive", "Smart Materials", "Quantum Technology", "Space Technology"],
   },
 ];
@@ -322,7 +322,7 @@ export function generateMockPatents(): Patent[] {
 
     for (let i = 0; i < count; i++) {
       const angle = rand() * 2 * Math.PI;
-      const r = Math.sqrt(rand()) * 0.075;         // tight sub-cluster radius
+      const r = Math.sqrt(rand()) * 0.09;          // wider spread for cluster overlap
       // Concentrate more patents in 2024 to represent "last year" data
       const yearBias = rand();
       const year = yearBias > 0.35

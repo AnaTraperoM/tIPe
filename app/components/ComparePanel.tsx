@@ -89,7 +89,7 @@ export default function ComparePanel({ patents, result, loading, onCompare, onRe
                     </span>
                   </div>
                   {p.abstract && (
-                    <p className="text-xs leading-relaxed line-clamp-3" style={{ color: "#64748b" }}>{p.abstract}</p>
+                    <p className="text-xs leading-relaxed line-clamp-3" style={{ color: "var(--muted)" }}>{p.abstract}</p>
                   )}
                 </div>
               ))}

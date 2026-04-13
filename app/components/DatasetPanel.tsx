@@ -43,7 +43,7 @@ export default function DatasetPanel({
       {/* Toggle bar */}
       <button
         onClick={() => setExpanded(v => !v)}
-        className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold transition-colors hover:bg-slate-50"
+        className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold transition-colors"
         style={{ color: "var(--foreground)" }}
       >
         <span className="flex items-center gap-2">

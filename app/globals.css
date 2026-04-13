@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --accent: #6366f1;
-  --accent-light: #818cf8;
-  --surface: #ffffff;
-  --surface-2: #f1f5f9;
-  --border: #e2e8f0;
-  --muted: #94a3b8;
+  --background: #0a0a0f;
+  --foreground: #e2e8f0;
+  --accent: #818cf8;
+  --accent-light: #a5b4fc;
+  --surface: rgba(15, 15, 24, 0.85);
+  --surface-2: rgba(20, 20, 32, 0.9);
+  --border: rgba(255, 255, 255, 0.08);
+  --muted: #64748b;
 }
 
 body {
@@ -23,9 +23,9 @@ body {
 }
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: var(--surface-2); }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+::-webkit-scrollbar-track { background: rgba(15,15,24,0.5); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
 
 /* Range slider thumb */
 input[type="range"]::-webkit-slider-thumb {
@@ -50,12 +50,13 @@ input[type="range"]::-moz-range-thumb {
 .patent-tooltip {
   position: absolute;
   pointer-events: none;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: rgba(12, 12, 20, 0.92);
+  border: 1px solid rgba(255,255,255,0.1);
   border-radius: 10px;
   padding: 10px 12px;
   font-size: 12px;
   max-width: 220px;
   z-index: 50;
-  box-shadow: 0 4px 20px rgba(15,23,42,0.12), 0 1px 4px rgba(15,23,42,0.06);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5), 0 0 1px rgba(255,255,255,0.05);
+  backdrop-filter: blur(12px);
 }

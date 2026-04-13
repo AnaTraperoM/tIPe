@@ -141,7 +141,7 @@ export default function Sidebar({
       <div
         className="fixed inset-0 z-30 transition-opacity"
         style={{
-          background: "rgba(15,23,42,0.18)",
+          background: "rgba(0,0,0,0.4)",
           opacity: open ? 1 : 0,
           pointerEvents: open ? "auto" : "none",
           backdropFilter: "blur(1px)",
@@ -159,7 +159,7 @@ export default function Sidebar({
           borderRight: "1px solid var(--border)",
           transform: open ? "translateX(0)" : "translateX(-100%)",
           transition: "transform 300ms cubic-bezier(0.4,0,0.2,1)",
-          boxShadow: open ? "4px 0 32px rgba(15,23,42,0.1)" : "none",
+          boxShadow: open ? "4px 0 32px rgba(0,0,0,0.4)" : "none",
         }}
       >
       {/* Tab bar + close */}
@@ -182,7 +182,7 @@ export default function Sidebar({
         <div className="flex-1" />
         <button
           onClick={onClose}
-          className="p-2.5 mr-1 rounded-lg transition-colors hover:bg-slate-100"
+          className="p-2.5 mr-1 rounded-lg transition-colors hover:bg-white/5"
           style={{ color: "var(--muted)" }}
         >
           <X size={14} />
@@ -226,7 +226,7 @@ export default function Sidebar({
                   {groupYearRange}
                 </div>
               </div>
-              <button onClick={onGroupClose} className="p-1 rounded hover:bg-slate-100 transition-colors" style={{ color: "var(--muted)" }}>
+              <button onClick={onGroupClose} className="p-1 rounded hover:bg-white/5 transition-colors" style={{ color: "var(--muted)" }}>
                 <X size={14} />
               </button>
             </div>
@@ -348,7 +348,7 @@ export default function Sidebar({
                   <button
                     key={p.id}
                     onClick={() => { onSelectPatent(p); }}
-                    className="flex items-start gap-2 text-left px-2 py-2 rounded-lg transition-colors hover:bg-slate-100 group"
+                    className="flex items-start gap-2 text-left px-2 py-2 rounded-lg transition-colors hover:bg-white/5 group"
                   >
                     <span className="w-2 h-2 rounded-full flex-shrink-0 mt-1" style={{ background: CATEGORY_COLORS[p.category] ?? "#888" }} />
                     <div className="flex-1 min-w-0">
@@ -420,7 +420,7 @@ export default function Sidebar({
                 <span className="text-xs font-mono px-2 py-1 rounded" style={{ background: "var(--surface-2)", color: "var(--accent-light)" }}>
                   {selected.id}
                 </span>
-                <button onClick={onClear} className="p-1 rounded hover:bg-slate-100 transition-colors" style={{ color: "var(--muted)" }}>
+                <button onClick={onClear} className="p-1 rounded hover:bg-white/5 transition-colors" style={{ color: "var(--muted)" }}>
                   <X size={14} />
                 </button>
               </div>

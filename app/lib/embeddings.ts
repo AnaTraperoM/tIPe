@@ -75,7 +75,7 @@ function hashFloat(s: string): number {
 export function computeCoordinates(category: string, patentId: string): { x: number; y: number } {
   const center = CLUSTER_CENTERS[category] ?? CLUSTER_CENTERS["Other"];
   const angle = hashFloat(patentId) * 2 * Math.PI;
-  const r = hashFloat(patentId + "_r") * 0.06; // tighter radius for denser clusters
+  const r = hashFloat(patentId + "_r") * 0.09; // wider spread for cluster overlap
   return {
     x: center.cx + r * Math.cos(angle),
     y: center.cy + r * Math.sin(angle),

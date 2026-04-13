@@ -21,7 +21,7 @@ export default function Header({ onSearch, searching, resultCount, mock, dataSou
   return (
     <header
       className="flex items-center justify-between px-5 h-14 flex-shrink-0"
-      style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}
+      style={{ background: "rgba(10,10,15,0.75)", borderBottom: "1px solid rgba(255,255,255,0.06)", backdropFilter: "blur(12px)" }}
     >
       <div className="flex items-center gap-3">
         <span className="text-sm font-bold tracking-tight" style={{ color: "var(--foreground)" }}>

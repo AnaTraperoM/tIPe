@@ -119,7 +119,7 @@ export default function UploadAnalysis({ result, onSelectPatent }: Props) {
               style={{
                 background: "var(--surface-2)",
                 border: "1px solid var(--border)",
-                color: "#64748b",
+                color: "var(--muted)",
                 whiteSpace: "pre-wrap",
                 wordBreak: "break-word",
                 maxHeight: 150,
