@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { UploadAnalysisResult } from "@/app/lib/types";
-import { isAnthropicConfigured, analyzeUploadedDocument } from "@/app/lib/anthropic";
-import { generateMockPatents } from "@/app/lib/mock-data";
-import { computeUploadCoordinates, CLUSTER_CENTERS } from "@/app/lib/embeddings";
+import { isBigQueryConfigured, vectorSearchByText, searchCachedPatents } from "@/app/lib/bigquery";
+import { computeUploadCoordinates } from "@/app/lib/embeddings";
 
 // Force Node.js runtime — required for pdf-parse and tesseract.js
 export const runtime = "nodejs";
@@ -33,11 +32,6 @@ async function extractText(file: File): Promise<string> {
   return buffer.toString("utf-8").slice(0, 8000);
 }
 
-/** Euclidean distance between two points in [0,1] space */
-function dist(a: { x: number; y: number }, b: { x: number; y: number }): number {
-  return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
-}
-
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const contentType = req.headers.get("content-type") ?? "";
@@ -45,10 +39,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     let text: string;
     let inputType: "file" | "idea";
     let radius: number;
-    let fileName: string | undefined;
 
     if (contentType.includes("application/json")) {
-      // Text idea submission
       const body = await req.json();
       text = (body.text ?? "").slice(0, 8000);
       radius = Math.min(50, Math.max(1, Number(body.radius) || 10));
@@ -57,7 +49,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         return NextResponse.json({ error: "No text provided" }, { status: 400 });
       }
     } else {
-      // File upload (FormData)
       const formData = await req.formData();
       const file = formData.get("file");
       radius = Math.min(50, Math.max(1, Number(formData.get("radius")) || 10));
@@ -65,69 +56,64 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         return NextResponse.json({ error: "No file provided" }, { status: 400 });
       }
       text = await extractText(file as File);
-      fileName = (file as File).name;
       inputType = "file";
     }
 
-    const allPatents = generateMockPatents();
-
-    if (!isAnthropicConfigured()) {
-      // Mock fallback: pick a category, find nearest patents by distance
-      const category = "Machine Learning";
-      const coords = computeUploadCoordinates(category);
-      const sorted = [...allPatents]
-        .map(p => ({ patent: p, dist: dist(coords, { x: p.x, y: p.y }) }))
-        .sort((a, b) => a.dist - b.dist)
-        .slice(0, radius);
-
-      const categories = [...new Set(sorted.map(s => s.patent.category))];
-
-      return NextResponse.json<UploadAnalysisResult>({
-        extractedText: text.slice(0, 500),
-        placementCoords: coords,
-        relatedPatents: sorted.map(s => s.patent),
-        aiSummary: "Document analyzed. The content appears to relate to computing and technology. Connect an Anthropic API key for full AI-powered analysis with claims extraction.",
-        detectedCategory: category,
-        inputType,
-        spaceSummary: `This idea falls within the ${categories.join(", ")} technology space. The ${radius} closest patents span innovations in these domains, indicating an active area of research and development.`,
-        mainClaims: [
-          "Novel approach to data processing and system optimization",
-          "Integration of multiple technical components for improved performance",
-          "Method and apparatus for enhanced computational efficiency",
-        ],
-      });
+    // Vector search BigQuery for semantically similar patents, fall back to cached search
+    let relatedPatents;
+    try {
+      relatedPatents = isBigQueryConfigured()
+        ? await vectorSearchByText(text, radius)
+        : searchCachedPatents(text, radius);
+    } catch {
+      console.warn("[analyze-upload] BigQuery vector search failed, using cached patents");
+      relatedPatents = searchCachedPatents(text, radius);
     }
 
-    const analysis = await analyzeUploadedDocument(text, allPatents, radius);
+    // Derive category from majority of results
+    const catCounts = new Map<string, number>();
+    for (const p of relatedPatents) {
+      catCounts.set(p.category, (catCounts.get(p.category) ?? 0) + 1);
+    }
+    const detectedCategory = [...catCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "Other";
+    const coords = computeUploadCoordinates(detectedCategory);
 
-    // Find related patents by proximity to placement coords
-    const sorted = [...allPatents]
-      .map(p => ({ patent: p, dist: dist(analysis.placementCoords, { x: p.x, y: p.y }) }))
-      .sort((a, b) => a.dist - b.dist)
-      .slice(0, radius);
+    // Build summary from results
+    const categories = [...new Set(relatedPatents.map(p => p.category))];
+    const years = relatedPatents.map(p => p.year).filter(y => y > 0);
+    const yearMin = years.length ? Math.min(...years) : 2000;
+    const yearMax = years.length ? Math.max(...years) : 2024;
+    const topAssignees = [...new Set(relatedPatents.map(p => p.assignee).filter(Boolean))].slice(0, 5);
 
-    // Also include any AI-identified patents that aren't already in the list
-    const nearestIds = new Set(sorted.map(s => s.patent.id));
-    const aiMatches = allPatents
-      .filter(p => analysis.relatedPatentIds.includes(p.id) && !nearestIds.has(p.id));
+    const spaceSummary = `This idea maps to the ${categories.join(", ")} technology space. `
+      + `The ${relatedPatents.length} most similar patents span ${yearMin}–${yearMax}, `
+      + `with key players including ${topAssignees.length ? topAssignees.join(", ") : "various assignees"}. `
+      + `The concentration across ${categories.length} categories suggests ${categories.length > 3 ? "a cross-disciplinary innovation space" : "a focused technology domain"}.`;
 
-    const relatedPatents = [
-      ...sorted.map(s => s.patent),
-      ...aiMatches,
-    ].slice(0, radius);
+    const aiSummary = `Found ${relatedPatents.length} semantically similar patents via vector search across the Google Patents corpus. `
+      + `The closest matches are in ${detectedCategory}, indicating your idea falls within this technology landscape.`;
+
+    // Extract potential claims from top patent abstracts
+    const mainClaims = relatedPatents.slice(0, 5)
+      .map(p => p.abstract ?? "")
+      .filter(a => a.length > 50)
+      .map(a => {
+        const firstSentence = a.split(/\.\s/)[0];
+        return firstSentence.length > 200 ? firstSentence.slice(0, 200) + "…" : firstSentence + ".";
+      });
 
     return NextResponse.json<UploadAnalysisResult>({
       extractedText: text.slice(0, 500),
-      placementCoords: analysis.placementCoords,
+      placementCoords: coords,
       relatedPatents,
-      aiSummary: analysis.summary,
-      detectedCategory: analysis.category,
+      aiSummary,
+      detectedCategory,
       inputType,
-      spaceSummary: analysis.spaceSummary,
-      mainClaims: analysis.mainClaims,
+      spaceSummary,
+      mainClaims,
     });
   } catch (err) {
     console.error("[/api/ai/analyze-upload]", err);
-    return NextResponse.json({ error: "Upload analysis failed" }, { status: 500 });
+    return NextResponse.json({ error: `Analysis failed: ${String(err)}` }, { status: 500 });
   }
 }

@@ -17,7 +17,7 @@ import type {
   ConceptSearchResult,
   QueryInterpretation,
 } from "./lib/types";
-import { generateMockPatents, CATEGORY_COLORS } from "./lib/mock-data";
+import { CATEGORY_COLORS } from "./lib/mock-data";
 
 export default function Home() {
   // Patent data
@@ -246,10 +246,31 @@ export default function Home() {
   const handleCloseCompare = useCallback(() => setShowCompare(false), []);
   const handleClearHistory = useCallback(() => setSessionHistory([]), []);
 
-  // Load initial mock data
+  // Load patents from BigQuery (no mock fallback)
+  const [dataSource, setDataSource] = useState<"loading" | "bigquery" | "error">("loading");
   useEffect(() => {
-    setPatents(generateMockPatents());
-  }, []);
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/patents/load?limit=10000");
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({ error: "Load failed" }));
+          throw new Error(body.error ?? "Load failed");
+        }
+        const data = await res.json();
+        if (!cancelled) {
+          setPatents(data.patents);
+          setDataSource(data.source);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setDataSource("error");
+          showError(err instanceof Error ? err.message : "Failed to load patents from BigQuery.");
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [showError]);
 
   // Search
   const handleSearch = useCallback(async (query: string) => {
@@ -414,6 +435,7 @@ export default function Home() {
         searching={searching}
         resultCount={visiblePatents.length}
         mock={searchMock}
+        dataSource={dataSource}
       />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar

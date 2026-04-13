@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { conceptSearch } from "@/app/lib/anthropic";
-import { generateMockPatents } from "@/app/lib/mock-data";
 import type { Patent, ConceptSearchResult } from "@/app/lib/types";
+import * as fs from "fs";
+import * as path from "path";
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,7 +11,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No concept provided" }, { status: 400 });
     }
 
-    const allPatents = clientPatents?.length ? clientPatents : generateMockPatents();
+    let allPatents: Patent[];
+    if (clientPatents?.length) {
+      allPatents = clientPatents;
+    } else {
+      const cachePath = path.join(process.cwd(), "data", "patents-cache.json");
+      if (!fs.existsSync(cachePath)) {
+        return NextResponse.json(
+          { error: "No patent data available. Load patents first via /api/patents/load." },
+          { status: 503 }
+        );
+      }
+      const raw = fs.readFileSync(cachePath, "utf-8");
+      allPatents = (JSON.parse(raw) as { patents: Patent[] }).patents;
+    }
     const availableCategories = [...new Set(allPatents.map(p => p.category))];
 
     // Ask Claude which categories + keywords match the concept

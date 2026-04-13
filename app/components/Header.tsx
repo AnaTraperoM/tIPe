@@ -8,9 +8,10 @@ interface Props {
   searching: boolean;
   resultCount: number;
   mock: boolean;
+  dataSource?: "loading" | "bigquery" | "error";
 }
 
-export default function Header({ onSearch, searching, resultCount, mock }: Props) {
+export default function Header({ onSearch, searching, resultCount, mock, dataSource }: Props) {
   const [value, setValue] = useState("");
 
   const handleKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -58,12 +59,10 @@ export default function Header({ onSearch, searching, resultCount, mock }: Props
 
       <div className="flex items-center gap-2 text-xs" style={{ color: "var(--muted)" }}>
         <span>{resultCount} patents</span>
-        {mock && (
-          <>
-            <span style={{ color: "var(--border)" }}>·</span>
-            <span style={{ color: "var(--accent-light)" }}>demo</span>
-          </>
-        )}
+        <span style={{ color: "var(--border)" }}>·</span>
+        <span style={{ color: dataSource === "bigquery" ? "#52c98b" : dataSource === "error" ? "#ef4444" : "var(--accent-light)" }}>
+          {dataSource === "loading" ? "loading…" : dataSource === "bigquery" ? "live" : "error"}
+        </span>
         <span style={{ color: "var(--border)" }}>·</span>
         <span>2000–2024</span>
         <span style={{ color: "var(--border)" }}>·</span>

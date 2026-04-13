@@ -40,3 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .claude/settings.local.json
+
+# Google Cloud service account keys
+tipe-*.json
+
+# Patent data cache (keep patents-cache.json committed for Vercel)
+/data/*.tmp
