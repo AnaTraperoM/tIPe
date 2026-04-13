@@ -89,7 +89,7 @@ function ipcToCategory(ipc: string): string {
 }
 
 // ─── JSON file cache ─────────────────────────────────────────────────────────
-const CACHE_PATH = path.join(process.cwd(), "data", "patents-cache.json");
+const CACHE_PATH = path.join(process.cwd(), "public", "data", "patents-cache.json");
 
 function readCache(): Patent[] | null {
   try {
@@ -128,68 +128,78 @@ export async function loadInitialPatents(limit: number = 3000): Promise<Patent[]
     return cached;
   }
 
-  const { BigQuery } = await import("@google-cloud/bigquery");
-  const bq = new BigQuery({ projectId: process.env.BIGQUERY_PROJECT_ID });
+  // BigQuery fallback — only works when credentials are configured
+  try {
+    if (!isBigQueryConfigured()) {
+      console.warn("[bigquery] No BigQuery credentials and no cache — returning empty");
+      return [];
+    }
 
-  // Query a diverse sample across IPC sections relevant to our categories
-  const ipcPrefixes = Object.keys(IPC_TO_CATEGORY);
-  const perCategory = Math.ceil(limit / ipcPrefixes.length);
+    const { BigQuery } = await import("@google-cloud/bigquery");
+    const bq = new BigQuery({ projectId: process.env.BIGQUERY_PROJECT_ID });
 
-  const query = `
-    WITH ranked AS (
-      SELECT
-        publication_number,
-        (SELECT t.text FROM UNNEST(title_localized) t WHERE t.language = 'en' LIMIT 1) AS title,
-        (SELECT a.text FROM UNNEST(abstract_localized) a WHERE a.language = 'en' LIMIT 1) AS abstract,
-        CAST(SUBSTR(CAST(filing_date AS STRING), 1, 4) AS INT64) AS year,
-        (SELECT h.name FROM UNNEST(assignee_harmonized) h LIMIT 1) AS assignee,
-        (SELECT i.code FROM UNNEST(ipc) i LIMIT 1) AS primary_ipc,
-        (SELECT COUNT(*) FROM UNNEST(citation)) AS citation_count,
-        ROW_NUMBER() OVER (
-          PARTITION BY SUBSTR((SELECT i.code FROM UNNEST(ipc) i LIMIT 1), 1, 4)
-          ORDER BY (SELECT COUNT(*) FROM UNNEST(citation)) DESC
-        ) AS rn
-      FROM \`patents-public-data.patents.publications\`
-      WHERE
-        country_code = 'US'
-        AND SUBSTR((SELECT i.code FROM UNNEST(ipc) i LIMIT 1), 1, 4) IN UNNEST(@ipcPrefixes)
-        AND (SELECT t.text FROM UNNEST(title_localized) t WHERE t.language = 'en' LIMIT 1) IS NOT NULL
-        AND CAST(SUBSTR(CAST(filing_date AS STRING), 1, 4) AS INT64) BETWEEN 2000 AND 2024
-    )
-    SELECT * FROM ranked
-    WHERE rn <= @perCategory
-    ORDER BY primary_ipc, citation_count DESC
-  `;
+    const ipcPrefixes = Object.keys(IPC_TO_CATEGORY);
+    const perCategory = Math.ceil(limit / ipcPrefixes.length);
 
-  console.log(`[bigquery] Fetching ~${limit} patents across ${ipcPrefixes.length} IPC categories...`);
+    const query = `
+      WITH ranked AS (
+        SELECT
+          publication_number,
+          (SELECT t.text FROM UNNEST(title_localized) t WHERE t.language = 'en' LIMIT 1) AS title,
+          (SELECT a.text FROM UNNEST(abstract_localized) a WHERE a.language = 'en' LIMIT 1) AS abstract,
+          CAST(SUBSTR(CAST(filing_date AS STRING), 1, 4) AS INT64) AS year,
+          (SELECT h.name FROM UNNEST(assignee_harmonized) h LIMIT 1) AS assignee,
+          (SELECT i.code FROM UNNEST(ipc) i LIMIT 1) AS primary_ipc,
+          (SELECT COUNT(*) FROM UNNEST(citation)) AS citation_count,
+          ROW_NUMBER() OVER (
+            PARTITION BY SUBSTR((SELECT i.code FROM UNNEST(ipc) i LIMIT 1), 1, 4)
+            ORDER BY (SELECT COUNT(*) FROM UNNEST(citation)) DESC
+          ) AS rn
+        FROM \`patents-public-data.patents.publications\`
+        WHERE
+          country_code = 'US'
+          AND SUBSTR((SELECT i.code FROM UNNEST(ipc) i LIMIT 1), 1, 4) IN UNNEST(@ipcPrefixes)
+          AND (SELECT t.text FROM UNNEST(title_localized) t WHERE t.language = 'en' LIMIT 1) IS NOT NULL
+          AND CAST(SUBSTR(CAST(filing_date AS STRING), 1, 4) AS INT64) BETWEEN 2000 AND 2024
+      )
+      SELECT * FROM ranked
+      WHERE rn <= @perCategory
+      ORDER BY primary_ipc, citation_count DESC
+    `;
 
-  const [rows] = await bq.query({
-    query,
-    params: { ipcPrefixes, perCategory },
-    location: "US",
-  });
+    console.log(`[bigquery] Fetching ~${limit} patents across ${ipcPrefixes.length} IPC categories...`);
 
-  const patents: Patent[] = rows.map((row: Record<string, unknown>) => {
-    const ipc = (row.primary_ipc as string) ?? "";
-    const category = ipcToCategory(ipc);
-    const id = row.publication_number as string;
-    const coords = computeCoordinates(category, id);
-    return {
-      id,
-      title: (row.title as string) ?? "Untitled",
-      year: (row.year as number) ?? 2000,
-      category,
-      abstract: ((row.abstract as string) ?? "").slice(0, 500),
-      assignee: (row.assignee as string) ?? undefined,
-      ipcCodes: ipc ? [ipc] : [],
-      citationCount: (row.citation_count as number) ?? 0,
-      ...coords,
-    };
-  });
+    const [rows] = await bq.query({
+      query,
+      params: { ipcPrefixes, perCategory },
+      location: "US",
+    });
 
-  console.log(`[bigquery] Fetched ${patents.length} patents, caching to disk`);
-  writeCache(patents);
-  return patents;
+    const patents: Patent[] = rows.map((row: Record<string, unknown>) => {
+      const ipc = (row.primary_ipc as string) ?? "";
+      const category = ipcToCategory(ipc);
+      const id = row.publication_number as string;
+      const coords = computeCoordinates(category, id);
+      return {
+        id,
+        title: (row.title as string) ?? "Untitled",
+        year: (row.year as number) ?? 2000,
+        category,
+        abstract: ((row.abstract as string) ?? "").slice(0, 500),
+        assignee: (row.assignee as string) ?? undefined,
+        ipcCodes: ipc ? [ipc] : [],
+        citationCount: (row.citation_count as number) ?? 0,
+        ...coords,
+      };
+    });
+
+    console.log(`[bigquery] Fetched ${patents.length} patents, caching to disk`);
+    writeCache(patents);
+    return patents;
+  } catch (err) {
+    console.error("[bigquery] BigQuery fallback failed:", err);
+    return [];
+  }
 }
 
 // ─── Local cache search (zero BigQuery cost) ────────────────────────────────

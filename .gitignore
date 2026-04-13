@@ -44,5 +44,6 @@ next-env.d.ts
 # Google Cloud service account keys
 tipe-*.json
 
-# Patent data cache (keep patents-cache.json committed for Vercel)
-/data/*.tmp
+# Patent data cache (keep public/data/patents-cache.json committed for Vercel)
+/public/data/*.tmp
+/data/

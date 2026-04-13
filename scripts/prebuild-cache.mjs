@@ -9,7 +9,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const CACHE_PATH = path.join(__dirname, "..", "data", "patents-cache.json");
+const CACHE_PATH = path.join(__dirname, "..", "public", "data", "patents-cache.json");
 const LIMIT = 10000;
 
 // IPC → category mapping (mirrors app/lib/bigquery.ts)
