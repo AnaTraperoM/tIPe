@@ -38,7 +38,7 @@ export default function DatasetPanel({
   return (
     <div
       className="flex-shrink-0"
-      style={{ background: "var(--surface)", borderTop: "1px solid var(--border)" }}
+      style={{ background: "var(--surface)", borderTop: "1px dashed rgba(255,255,255,0.08)" }}
     >
       {/* Toggle bar */}
       <button
@@ -47,7 +47,7 @@ export default function DatasetPanel({
         style={{ color: "var(--foreground)" }}
       >
         <span className="flex items-center gap-2">
-          <span style={{ color: "var(--accent)", fontSize: 15 }}>+</span>
+          <span style={{ color: "var(--muted)", fontSize: 15 }}>+</span>
           Add or remove datasets
           <span
             className="px-1.5 py-0.5 rounded text-xs font-mono"
@@ -60,7 +60,7 @@ export default function DatasetPanel({
       </button>
 
       {expanded && (
-        <div className="flex flex-col gap-4 px-4 pb-4">
+        <div className="flex flex-col gap-6 px-6 pb-6">
 
           {/* Year range slider */}
           <div className="flex items-center gap-3">
@@ -91,19 +91,20 @@ export default function DatasetPanel({
             {DOMAIN_HIERARCHY.map(domain => {
               const fullyActive = isDomainFullyActive(domain.subcategories);
               const partial = isDomainPartiallyActive(domain.subcategories);
+              const isOn = fullyActive || partial;
               return (
                 <button
                   key={domain.name}
                   onClick={() => onToggleCategories(domain.subcategories, fullyActive ? false : true)}
-                  className="flex-shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full font-semibold transition-all"
+                  className="flex-shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full font-medium transition-all"
                   style={{
-                    background: fullyActive ? `${domain.color}22` : partial ? `${domain.color}11` : "var(--surface-2)",
-                    border: `1.5px solid ${fullyActive ? domain.color + "99" : partial ? domain.color + "55" : "var(--border)"}`,
-                    color: fullyActive || partial ? domain.color : "var(--muted)",
-                    opacity: fullyActive || partial ? 1 : 0.7,
+                    background: "transparent",
+                    border: `1px dashed ${isOn ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.06)"}`,
+                    color: isOn ? "var(--foreground)" : "var(--muted)",
+                    opacity: isOn ? 1 : 0.6,
                   }}
                 >
-                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: fullyActive || partial ? domain.color : "var(--border)" }} />
+                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: isOn ? domain.color : "rgba(255,255,255,0.12)" }} />
                   {domain.name}
                 </button>
               );
@@ -125,14 +126,14 @@ export default function DatasetPanel({
                   onClick={() => onToggleCategories([cat])}
                   className="flex-shrink-0 flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full transition-all"
                   style={{
-                    background: active ? `${color}22` : "var(--surface-2)",
-                    border: `1px solid ${active ? color + "66" : "var(--border)"}`,
-                    color: active ? color : "var(--muted)",
-                    opacity: active ? 1 : 0.6,
+                    background: "transparent",
+                    border: `1px dashed ${active ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.05)"}`,
+                    color: active ? "var(--foreground)" : "var(--muted)",
+                    opacity: active ? 1 : 0.5,
                     fontWeight: active ? 500 : 400,
                   }}
                 >
-                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: active ? color : "var(--muted)" }} />
+                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: active ? color : "rgba(255,255,255,0.1)" }} />
                   {cat}
                 </button>
               );
@@ -149,19 +150,19 @@ export default function DatasetPanel({
                 <button
                   key={topic}
                   onClick={() => onTopicSearch?.(topic)}
-                  className="flex-shrink-0 text-xs px-2 py-0.5 rounded-md transition-all hover:shadow-sm"
+                  className="flex-shrink-0 text-xs px-2 py-0.5 rounded-md transition-all"
                   style={{
-                    background: "var(--surface-2)",
-                    border: "1px solid var(--border)",
+                    background: "transparent",
+                    border: "1px dashed rgba(255,255,255,0.06)",
                     color: "var(--muted)",
                     fontSize: 11,
                   }}
                   onMouseEnter={e => {
-                    (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--accent-light)";
-                    (e.currentTarget as HTMLButtonElement).style.color = "var(--accent)";
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.2)";
+                    (e.currentTarget as HTMLButtonElement).style.color = "var(--foreground)";
                   }}
                   onMouseLeave={e => {
-                    (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)";
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.06)";
                     (e.currentTarget as HTMLButtonElement).style.color = "var(--muted)";
                   }}
                 >

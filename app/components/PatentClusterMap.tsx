@@ -200,6 +200,32 @@ export default function PatentClusterMap({
     yScaleRef.current = yScale;
 
     // SVG layer groups in z-order
+    // Ghost arc decorations (blueprint feel)
+    const ghostG = g.append("g").attr("class", "ghost-arcs");
+    const ghostArcs = [
+      { cx: W * 0.15, cy: H * 0.2, r: 140, startAngle: 0.3, endAngle: 1.8 },
+      { cx: W * 0.85, cy: H * 0.75, r: 180, startAngle: 2.5, endAngle: 4.8 },
+      { cx: W * 0.5, cy: H * 0.5, r: 280, startAngle: 1.0, endAngle: 2.2 },
+      { cx: W * 0.25, cy: H * 0.8, r: 100, startAngle: 4.0, endAngle: 5.8 },
+      { cx: W * 0.75, cy: H * 0.15, r: 120, startAngle: 0.5, endAngle: 2.0 },
+    ];
+    for (const arc of ghostArcs) {
+      const pathD = d3.arc<unknown>()({
+        innerRadius: arc.r, outerRadius: arc.r,
+        startAngle: arc.startAngle, endAngle: arc.endAngle,
+      });
+      if (pathD) {
+        ghostG.append("path")
+          .attr("d", pathD)
+          .attr("transform", `translate(${arc.cx},${arc.cy})`)
+          .attr("fill", "none")
+          .attr("stroke", "#ffffff")
+          .attr("stroke-opacity", 0.025)
+          .attr("stroke-width", 0.5)
+          .attr("stroke-dasharray", "3 8");
+      }
+    }
+
     contoursGRef.current = g.append("g").attr("class", "contours-layer");
     hullGRef.current = g.append("g").attr("class", "hull-layer");
     uploadGRef.current = g.append("g").attr("class", "upload-layer");
@@ -311,8 +337,9 @@ export default function PatentClusterMap({
         .attr("fill", color)
         .attr("fill-opacity", (_, i) => (i + 1) * 0.015)
         .attr("stroke", "#ffffff")
-        .attr("stroke-opacity", (_, i) => 0.04 + i * 0.02)
-        .attr("stroke-width", 0.5)
+        .attr("stroke-opacity", (_, i) => 0.03 + i * 0.015)
+        .attr("stroke-width", 0.4)
+        .attr("stroke-dasharray", "4 6")
         .attr("stroke-linejoin", "round");
     }
   }, [patentsByCategory]);
@@ -557,7 +584,7 @@ export default function PatentClusterMap({
         <button
           onClick={onToggleDrawer}
           className="self-start flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all hover:shadow-sm"
-          style={{ background: "rgba(15,15,24,0.7)", border: "1px solid rgba(255,255,255,0.08)", color: "var(--foreground)", boxShadow: "0 1px 8px rgba(0,0,0,0.3)", backdropFilter: "blur(12px)" }}
+          style={{ background: "rgba(15,15,24,0.7)", border: "1px dashed rgba(255,255,255,0.1)", color: "var(--foreground)", boxShadow: "0 1px 8px rgba(0,0,0,0.3)", backdropFilter: "blur(12px)" }}
         >
           <svg width={13} height={13} viewBox="0 0 16 16" fill="none">
             <rect x="1" y="3" width="14" height="1.5" rx="0.75" fill="currentColor" />
@@ -570,7 +597,7 @@ export default function PatentClusterMap({
         {/* Concept search bar */}
         <div
           className="flex flex-col rounded-xl overflow-hidden"
-          style={{ background: "rgba(15,15,24,0.7)", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 2px 16px rgba(0,0,0,0.3)", backdropFilter: "blur(12px)" }}
+          style={{ background: "rgba(15,15,24,0.7)", border: "1px dashed rgba(255,255,255,0.1)", boxShadow: "0 2px 16px rgba(0,0,0,0.3)", backdropFilter: "blur(12px)" }}
         >
           <div className="flex items-center gap-2 px-3 py-2">
             <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth={2.5} style={{ flexShrink: 0 }}>
@@ -613,7 +640,7 @@ export default function PatentClusterMap({
       {/* Draw mode button */}
       <div
         className="absolute top-3 right-3 flex gap-1 rounded-lg p-1"
-        style={{ background: "rgba(15,15,24,0.7)", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 1px 8px rgba(0,0,0,0.3)", backdropFilter: "blur(12px)", zIndex: 15 }}
+        style={{ background: "rgba(15,15,24,0.7)", border: "1px dashed rgba(255,255,255,0.1)", boxShadow: "0 1px 8px rgba(0,0,0,0.3)", backdropFilter: "blur(12px)", zIndex: 15 }}
       >
         <button
           onClick={() => onDrawModeChange(!drawMode)}
@@ -631,7 +658,7 @@ export default function PatentClusterMap({
       {/* Mini-map */}
       <div
         className="absolute top-12 right-3 rounded-lg overflow-hidden"
-        style={{ width: 120, height: 80, background: "rgba(10,10,15,0.8)", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 1px 8px rgba(0,0,0,0.4)", zIndex: 15 }}
+        style={{ width: 120, height: 80, background: "rgba(10,10,15,0.8)", border: "1px dashed rgba(255,255,255,0.1)", boxShadow: "0 1px 8px rgba(0,0,0,0.4)", zIndex: 15 }}
       >
         <svg ref={minimapRef} width={120} height={80} />
       </div>
@@ -649,7 +676,7 @@ export default function PatentClusterMap({
       {/* Loading overlay */}
       {searching && (
         <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(10,10,15,0.8)", zIndex: 20 }}>
-          <div className="flex items-center gap-2 text-sm px-4 py-3 rounded-xl" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--muted)", boxShadow: "0 4px 16px rgba(0,0,0,0.3)", backdropFilter: "blur(8px)" }}>
+          <div className="flex items-center gap-2 text-sm px-4 py-3 rounded-xl" style={{ background: "var(--surface)", border: "1px dashed rgba(255,255,255,0.1)", color: "var(--muted)", boxShadow: "0 4px 16px rgba(0,0,0,0.3)", backdropFilter: "blur(8px)" }}>
             <svg className="animate-spin" width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth={2.5}>
               <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
             </svg>
