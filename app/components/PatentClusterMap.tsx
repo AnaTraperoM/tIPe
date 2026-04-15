@@ -61,7 +61,6 @@ export default function PatentClusterMap({
   const svgRef = useRef<SVGSVGElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const minimapRef = useRef<SVGSVGElement>(null);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; patent: Patent } | null>(null);
   const transformRef = useRef<d3.ZoomTransform>(d3.zoomIdentity);
   const xScaleRef = useRef<d3.ScaleLinear<number, number>>(d3.scaleLinear());
@@ -76,6 +75,10 @@ export default function PatentClusterMap({
 
   // Ref to hold the canvas redraw function so zoom can call it
   const redrawDotsRef = useRef<() => void>(() => {});
+
+  // Zoom performance: skip shadowBlur during active zoom
+  const zoomingRef = useRef(false);
+  const zoomEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Refs for latest callback values (avoids stale closures in event handlers)
   const drawModeRef = useRef(drawMode);
@@ -235,8 +238,14 @@ export default function PatentClusterMap({
       .on("zoom", (event) => {
         g.attr("transform", event.transform);
         transformRef.current = event.transform;
+        // Mark as zooming — skip expensive shadowBlur during active zoom
+        zoomingRef.current = true;
+        if (zoomEndTimerRef.current) clearTimeout(zoomEndTimerRef.current);
+        zoomEndTimerRef.current = setTimeout(() => {
+          zoomingRef.current = false;
+          redrawDotsRef.current(); // Final redraw with shadows
+        }, 150);
         redrawDotsRef.current();
-        updateMinimap();
       });
     root.call(zoom);
 
@@ -266,48 +275,6 @@ export default function PatentClusterMap({
       setTooltip(null);
     });
 
-    // Mini-map
-    function updateMinimap() {
-      const mm = minimapRef.current;
-      if (!mm) return;
-      const MW = mm.clientWidth;
-      const MH = mm.clientHeight;
-      const mmRoot = d3.select(mm);
-      mmRoot.selectAll("*").remove();
-
-      const mmX = d3.scaleLinear().domain([0, 1]).range([4, MW - 4]);
-      const mmY = d3.scaleLinear().domain([0, 1]).range([4, MH - 4]);
-
-      mmRoot.selectAll("circle.mm-dot")
-        .data(patents)
-        .join("circle")
-        .attr("class", "mm-dot")
-        .attr("cx", (d) => mmX(d.x))
-        .attr("cy", (d) => mmY(d.y))
-        .attr("r", 1.2)
-        .attr("fill", (d) => CATEGORY_COLORS[d.category] ?? "#888")
-        .attr("fill-opacity", 0.7);
-
-      const t = transformRef.current;
-      const vx0 = (0 - t.x) / t.k;
-      const vy0 = (0 - t.y) / t.k;
-      const vx1 = (W - t.x) / t.k;
-      const vy1 = (H - t.y) / t.k;
-
-      const toMmX = (px: number) => mmX(xScale.invert(px));
-      const toMmY = (py: number) => mmY(yScale.invert(py));
-
-      mmRoot.append("rect")
-        .attr("x", toMmX(vx0)).attr("y", toMmY(vy0))
-        .attr("width", toMmX(vx1) - toMmX(vx0))
-        .attr("height", toMmY(vy1) - toMmY(vy0))
-        .attr("fill", "none")
-        .attr("stroke", "var(--accent-light)")
-        .attr("stroke-width", 1)
-        .attr("opacity", 0.7);
-    }
-
-    updateMinimap();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patents]);
 
@@ -321,27 +288,27 @@ export default function PatentClusterMap({
 
     contoursG.selectAll("*").remove();
 
-    for (const [cat, color] of Object.entries(CATEGORY_COLORS)) {
-      const catPatents = patentsByCategory.get(cat);
-      if (!catPatents || catPatents.length < 3) continue;
-      const density = d3.contourDensity<Patent>()
-        .x(d => xScale(d.x))
-        .y(d => yScale(d.y))
-        .size([W, H])
-        .bandwidth(40)
-        .thresholds(6)(catPatents);
-      contoursG.selectAll<SVGPathElement, d3.ContourMultiPolygon>(`path.topo-${cat.replace(/[^a-zA-Z0-9]/g, "-")}`)
-        .data(density)
-        .join("path")
-        .attr("d", d3.geoPath())
-        .attr("fill", color)
-        .attr("fill-opacity", (_, i) => (i + 1) * 0.015)
-        .attr("stroke", "#ffffff")
-        .attr("stroke-opacity", (_, i) => 0.03 + i * 0.015)
-        .attr("stroke-width", 0.4)
-        .attr("stroke-dasharray", "4 6")
-        .attr("stroke-linejoin", "round");
-    }
+    // Single density field over ALL patents — organic topographic contours
+    const allPatents = Array.from(patentsByCategory.values()).flat();
+    if (allPatents.length < 10) return;
+
+    const density = d3.contourDensity<Patent>()
+      .x(d => xScale(d.x))
+      .y(d => yScale(d.y))
+      .size([W, H])
+      .bandwidth(60)
+      .thresholds(10)(allPatents);
+
+    contoursG.selectAll<SVGPathElement, d3.ContourMultiPolygon>("path.topo")
+      .data(density)
+      .join("path")
+      .attr("class", "topo")
+      .attr("d", d3.geoPath())
+      .attr("fill", "none")
+      .attr("stroke", "#ffffff")
+      .attr("stroke-opacity", (_, i) => 0.1 + i * 0.04)
+      .attr("stroke-width", 1.2)
+      .attr("stroke-linejoin", "round");
   }, [patentsByCategory]);
 
   // ── Effect 2: Canvas dot rendering ──
@@ -390,9 +357,24 @@ export default function PatentClusterMap({
       const selX = selected ? selected.x : 0;
       const selY = selected ? selected.y : 0;
 
-      // Draw all dots with subtle glow halos
+      // Viewport culling bounds (in data-space coordinates)
+      const margin = 20 / t.k; // small margin so dots at edges aren't clipped
+      const vxMin = (0 - t.x) / t.k - margin;
+      const vxMax = (W - t.x) / t.k + margin;
+      const vyMin = (0 - t.y) / t.k - margin;
+      const vyMax = (H - t.y) / t.k + margin;
+
+      const isZooming = zoomingRef.current;
+
+      // Draw all dots — skip shadowBlur during zoom for performance
       for (let i = 0; i < patents.length; i++) {
         const p = patents[i];
+        const cx = xScale(p.x);
+        const cy = yScale(p.y);
+
+        // Viewport culling: skip dots outside visible area
+        if (cx < vxMin || cx > vxMax || cy < vyMin || cy > vyMax) continue;
+
         const isSel = selected?.id === p.id;
         const inCompare = compareSet.has(p.id);
         const isConcept = hasConceptMatches ? conceptMatches!.has(p.id) : false;
@@ -406,34 +388,39 @@ export default function PatentClusterMap({
 
         // Radius (scaled by inverse zoom to keep screen size constant)
         let r: number;
-        if (isSel) r = 6;
-        else if (inCompare) r = 4.5;
-        else if (isConcept) r = 4;
-        else if (inRadius) r = 4;
-        else r = 2.8;
+        if (isSel) r = 10;
+        else if (inCompare) r = 8;
+        else if (isConcept) r = 7.5;
+        else if (inRadius) r = 7.5;
+        else r = 6.5;
         r = r / t.k;
 
         // Opacity
         let alpha: number;
         if (isSel) alpha = 1;
-        else if (hasConceptMatches) alpha = isConcept ? 1 : 0.08;
-        else if (!selected) alpha = 0.85;
-        else alpha = (inRadius || inCompare) ? 0.9 : 0.15;
+        else if (hasConceptMatches) alpha = isConcept ? 0.55 : 0.04;
+        else if (!selected) alpha = 0.32;
+        else alpha = (inRadius || inCompare) ? 0.5 : 0.08;
 
         const rgb = CATEGORY_RGB[p.category] ?? [136, 136, 136];
-        const cx = xScale(p.x);
-        const cy = yScale(p.y);
 
-        // Subtle glow halo behind every dot
-        const glowAlpha = isSel ? 0.5 : (alpha * 0.25);
-        ctx.save();
-        ctx.shadowColor = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${glowAlpha})`;
-        ctx.shadowBlur = isSel ? 14 / t.k : 6 / t.k;
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${alpha})`;
-        ctx.fill();
-        ctx.restore();
+        // Draw dot — with glow only when not actively zooming
+        if (!isZooming) {
+          const glowAlpha = isSel ? 0.35 : (alpha * 0.1);
+          ctx.save();
+          ctx.shadowColor = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${glowAlpha})`;
+          ctx.shadowBlur = isSel ? 8 / t.k : 3 / t.k;
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${alpha})`;
+          ctx.fill();
+          ctx.restore();
+        } else {
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${alpha})`;
+          ctx.fill();
+        }
 
         // Stroke rings
         if (isSel || inCompare) {
@@ -579,89 +566,75 @@ export default function PatentClusterMap({
         </div>
       )}
 
-      {/* Drawer toggle + concept search */}
-      <div className="absolute top-3 left-3 flex flex-col gap-2" style={{ zIndex: 15, width: 280 }}>
-        <button
-          onClick={onToggleDrawer}
-          className="self-start flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all hover:shadow-sm"
-          style={{ background: "rgba(15,15,24,0.7)", border: "1px dashed rgba(255,255,255,0.1)", color: "var(--foreground)", boxShadow: "0 1px 8px rgba(0,0,0,0.3)", backdropFilter: "blur(12px)" }}
-        >
-          <svg width={13} height={13} viewBox="0 0 16 16" fill="none">
-            <rect x="1" y="3" width="14" height="1.5" rx="0.75" fill="currentColor" />
-            <rect x="1" y="7.25" width="14" height="1.5" rx="0.75" fill="currentColor" />
-            <rect x="1" y="11.5" width="14" height="1.5" rx="0.75" fill="currentColor" />
-          </svg>
-          Panel
-        </button>
+      {/* Noise grain overlay */}
+      <svg className="absolute inset-0 pointer-events-none" style={{ zIndex: 3, opacity: 0.035, mixBlendMode: "overlay" }}>
+        <filter id="grain">
+          <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" />
+        </filter>
+        <rect width="100%" height="100%" filter="url(#grain)" />
+      </svg>
 
-        {/* Concept search bar */}
-        <div
-          className="flex flex-col rounded-xl overflow-hidden"
-          style={{ background: "rgba(15,15,24,0.7)", border: "1px dashed rgba(255,255,255,0.1)", boxShadow: "0 2px 16px rgba(0,0,0,0.3)", backdropFilter: "blur(12px)" }}
-        >
-          <div className="flex items-center gap-2 px-3 py-2">
-            <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth={2.5} style={{ flexShrink: 0 }}>
-              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-            </svg>
-            <input
-              type="text"
-              value={conceptQuery}
-              onChange={e => setConceptQuery(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === "Enter" && conceptQuery.trim()) {
-                  onConceptSearch?.(conceptQuery.trim());
-                }
-              }}
-              placeholder="What ideas are you looking for?"
-              className="bg-transparent outline-none w-full text-xs"
-              style={{ color: "var(--foreground)" }}
-            />
-            {conceptQuery && (
-              <button
-                onClick={() => { setConceptQuery(""); onConceptSearch?.(""); }}
-                className="flex-shrink-0 text-xs"
-                style={{ color: "var(--muted)" }}
-              >✕</button>
-            )}
-          </div>
-          {conceptExplanation && (
-            <div className="px-3 pb-2 text-xs border-t" style={{ borderColor: "var(--border)", color: "var(--muted)", paddingTop: 6 }}>
-              {conceptExplanation}
-              {conceptMatches && conceptMatches.size > 0 && (
-                <span className="ml-1 font-semibold" style={{ color: "var(--accent)" }}>
-                  {conceptMatches.size} patents highlighted
-                </span>
-              )}
-            </div>
+      {/* Drawer toggle — text only */}
+      <button
+        onClick={onToggleDrawer}
+        className="absolute top-3 left-3 text-xs font-medium transition-opacity hover:opacity-100"
+        style={{ zIndex: 15, color: "var(--muted)", opacity: 0.7 }}
+      >
+        ☰ Panel
+      </button>
+
+      {/* Concept search — underline only */}
+      <div className="absolute top-3 left-24 flex flex-col" style={{ zIndex: 15, width: 240 }}>
+        <div className="flex items-center gap-2 pb-1" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+          <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth={2} style={{ flexShrink: 0, opacity: 0.5 }}>
+            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+          </svg>
+          <input
+            type="text"
+            value={conceptQuery}
+            onChange={e => setConceptQuery(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === "Enter" && conceptQuery.trim()) {
+                onConceptSearch?.(conceptQuery.trim());
+              }
+            }}
+            placeholder="What ideas are you looking for?"
+            className="bg-transparent outline-none w-full text-xs"
+            style={{ color: "var(--foreground)" }}
+          />
+          {conceptQuery && (
+            <button
+              onClick={() => { setConceptQuery(""); onConceptSearch?.(""); }}
+              className="flex-shrink-0 text-xs"
+              style={{ color: "var(--muted)" }}
+            >✕</button>
           )}
         </div>
+        {conceptExplanation && (
+          <div className="text-xs mt-1" style={{ color: "var(--muted)", opacity: 0.7 }}>
+            {conceptExplanation}
+            {conceptMatches && conceptMatches.size > 0 && (
+              <span className="ml-1 font-semibold" style={{ color: "var(--foreground)" }}>
+                {conceptMatches.size} highlighted
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Draw mode button */}
-      <div
-        className="absolute top-3 right-3 flex gap-1 rounded-lg p-1"
-        style={{ background: "rgba(15,15,24,0.7)", border: "1px dashed rgba(255,255,255,0.1)", boxShadow: "0 1px 8px rgba(0,0,0,0.3)", backdropFilter: "blur(12px)", zIndex: 15 }}
+      {/* Draw mode — text only */}
+      <button
+        onClick={() => onDrawModeChange(!drawMode)}
+        className="absolute top-3 right-3 text-xs font-medium transition-opacity hover:opacity-100"
+        title="Draw a circle to select and summarize a group of patents"
+        style={{
+          zIndex: 15,
+          color: drawMode ? "var(--foreground)" : "var(--muted)",
+          opacity: drawMode ? 1 : 0.7,
+        }}
       >
-        <button
-          onClick={() => onDrawModeChange(!drawMode)}
-          className="text-xs px-2.5 py-1 rounded-md font-medium transition-colors"
-          title="Draw a circle to select and summarize a group of patents"
-          style={{
-            background: drawMode ? "var(--accent)" : "transparent",
-            color: drawMode ? "#fff" : "var(--muted)",
-          }}
-        >
-          ◎ Select
-        </button>
-      </div>
-
-      {/* Mini-map */}
-      <div
-        className="absolute top-12 right-3 rounded-lg overflow-hidden"
-        style={{ width: 120, height: 80, background: "rgba(10,10,15,0.8)", border: "1px dashed rgba(255,255,255,0.1)", boxShadow: "0 1px 8px rgba(0,0,0,0.4)", zIndex: 15 }}
-      >
-        <svg ref={minimapRef} width={120} height={80} />
-      </div>
+        ◎ Select
+      </button>
 
       {/* Compare badge */}
       {compareSet.size >= 1 && (

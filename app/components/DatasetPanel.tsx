@@ -18,7 +18,7 @@ const MAX_YEAR = 2024;
 export default function DatasetPanel({
   yearRange, onYearRange, activeCategories, onToggleCategories, onTopicSearch,
 }: Props) {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const pct = (v: number) => ((v - MIN_YEAR) / (MAX_YEAR - MIN_YEAR)) * 100;
 
   const handleFrom = (e: React.ChangeEvent<HTMLInputElement>) =>
