@@ -4,7 +4,7 @@
     {
       "name": "tIPe dev",
       "runtimeExecutable": "/tmp/node-v22.13.1-darwin-arm64/bin/node",
-      "runtimeArgs": ["node_modules/next/dist/bin/next", "dev"],
+      "runtimeArgs": ["/Users/Ana/Project/tIPe/node_modules/next/dist/bin/next", "dev"],
       "port": 3000
     }
   ]

@@ -38,7 +38,7 @@ export default function DatasetPanel({
   return (
     <div
       className="flex-shrink-0"
-      style={{ background: "var(--surface)", borderTop: "1px dashed rgba(255,255,255,0.08)" }}
+      style={{ background: "var(--surface)", borderTop: "1px solid var(--border)" }}
     >
       {/* Toggle bar */}
       <button
@@ -96,10 +96,10 @@ export default function DatasetPanel({
                 <button
                   key={domain.name}
                   onClick={() => onToggleCategories(domain.subcategories, fullyActive ? false : true)}
-                  className="flex-shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full font-medium transition-all"
+                  className="flex-shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded font-medium transition-all"
                   style={{
                     background: "transparent",
-                    border: `1px dashed ${isOn ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.06)"}`,
+                    border: `1px solid ${isOn ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.08)"}`,
                     color: isOn ? "var(--foreground)" : "var(--muted)",
                     opacity: isOn ? 1 : 0.6,
                   }}
@@ -124,10 +124,10 @@ export default function DatasetPanel({
                 <button
                   key={cat}
                   onClick={() => onToggleCategories([cat])}
-                  className="flex-shrink-0 flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full transition-all"
+                  className="flex-shrink-0 flex items-center gap-1.5 text-xs px-2.5 py-1 rounded transition-all"
                   style={{
                     background: "transparent",
-                    border: `1px dashed ${active ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.05)"}`,
+                    border: `1px solid ${active ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.06)"}`,
                     color: active ? "var(--foreground)" : "var(--muted)",
                     opacity: active ? 1 : 0.5,
                     fontWeight: active ? 500 : 400,
@@ -150,10 +150,10 @@ export default function DatasetPanel({
                 <button
                   key={topic}
                   onClick={() => onTopicSearch?.(topic)}
-                  className="flex-shrink-0 text-xs px-2 py-0.5 rounded-md transition-all"
+                  className="flex-shrink-0 text-xs px-2 py-0.5 rounded transition-all"
                   style={{
                     background: "transparent",
-                    border: "1px dashed rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.06)",
                     color: "var(--muted)",
                     fontSize: 11,
                   }}
@@ -184,8 +184,8 @@ function LevelRow({ label, sublabel, level, children }: {
   children: React.ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const labelColor = level === 1 ? "var(--foreground)" : level === 2 ? "#475569" : "var(--muted)";
-  const badgeColors: Record<number, string> = { 1: "var(--accent)", 2: "#818cf8", 3: "#94a3b8" };
+  const labelColor = level === 1 ? "var(--foreground)" : level === 2 ? "var(--accent-light)" : "var(--muted)";
+  const badgeColors: Record<number, string> = { 1: "var(--accent)", 2: "var(--accent-light)", 3: "var(--muted)" };
 
   return (
     <div className="flex flex-col gap-1.5">

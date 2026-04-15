@@ -29,7 +29,7 @@ export default function ComparePanel({ patents, result, loading, onCompare, onRe
         className="flex items-center justify-between px-4 py-3 flex-shrink-0"
         style={{ borderBottom: "1px solid var(--border)" }}
       >
-        <span className="text-sm font-semibold" style={{ color: "#e2e8f0" }}>
+        <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
           Compare Patents
         </span>
         <button onClick={onClose} className="p-1 rounded hover:bg-white/5" style={{ color: "var(--muted)" }}>
@@ -42,7 +42,7 @@ export default function ComparePanel({ patents, result, loading, onCompare, onRe
         {patents.map((p) => (
           <div
             key={p.id}
-            className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs"
+            className="flex items-center gap-1.5 rounded px-2.5 py-1 text-xs"
             style={{
               background: `${CATEGORY_COLORS[p.category] ?? "#888"}22`,
               border: `1px solid ${CATEGORY_COLORS[p.category] ?? "#888"}55`,
@@ -58,7 +58,7 @@ export default function ComparePanel({ patents, result, loading, onCompare, onRe
         <button
           onClick={onCompare}
           disabled={patents.length < 2 || loading}
-          className="rounded-full px-3 py-1 text-xs font-medium transition-opacity disabled:opacity-40"
+          className="rounded px-3 py-1 text-xs font-medium transition-opacity disabled:opacity-40"
           style={{ background: "var(--accent)", color: "#000" }}
         >
           {loading ? "Analyzing…" : "Run Comparison"}
@@ -74,16 +74,16 @@ export default function ComparePanel({ patents, result, loading, onCompare, onRe
             </p>
             <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min(patents.length, 3)}, 1fr)` }}>
               {patents.map((p) => (
-                <div key={p.id} className="rounded-lg p-3 flex flex-col gap-2"
+                <div key={p.id} className="rounded p-3 flex flex-col gap-2"
                   style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
                   <div className="text-xs font-mono truncate" style={{ color: "var(--accent-light)" }}>{p.id}</div>
-                  <div className="text-xs font-medium leading-snug" style={{ color: "#e2e8f0" }}>{p.title}</div>
+                  <div className="text-xs font-medium leading-snug" style={{ color: "var(--foreground)" }}>{p.title}</div>
                   <div className="flex gap-1.5 flex-wrap mt-auto">
-                    <span className="text-xs px-1.5 py-0.5 rounded-full"
+                    <span className="text-xs px-1.5 py-0.5 rounded"
                       style={{ background: `${CATEGORY_COLORS[p.category] ?? "#888"}22`, color: CATEGORY_COLORS[p.category] ?? "#888" }}>
                       {p.category}
                     </span>
-                    <span className="text-xs px-1.5 py-0.5 rounded-full"
+                    <span className="text-xs px-1.5 py-0.5 rounded"
                       style={{ background: "var(--surface)", color: "var(--muted)", border: "1px solid var(--border)" }}>
                       {p.year}
                     </span>
@@ -111,26 +111,26 @@ export default function ComparePanel({ patents, result, loading, onCompare, onRe
             {/* Summary */}
             <div>
               <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--muted)" }}>Summary</div>
-              <p className="text-xs leading-relaxed" style={{ color: "#94a3b8" }}>{result.summary}</p>
+              <p className="text-xs leading-relaxed" style={{ color: "var(--accent-light)" }}>{result.summary}</p>
             </div>
 
             {/* Similarities & Differences */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-lg p-3" style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)" }}>
+              <div className="rounded p-3" style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)" }}>
                 <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "#10b981" }}>Similarities</div>
                 <ul className="flex flex-col gap-1.5">
                   {result.similarities.map((s, i) => (
-                    <li key={i} className="text-xs leading-relaxed flex gap-1.5" style={{ color: "#94a3b8" }}>
+                    <li key={i} className="text-xs leading-relaxed flex gap-1.5" style={{ color: "var(--accent-light)" }}>
                       <span style={{ color: "#10b981", flexShrink: 0 }}>·</span>{s}
                     </li>
                   ))}
                 </ul>
               </div>
-              <div className="rounded-lg p-3" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
+              <div className="rounded p-3" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
                 <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "#ef4444" }}>Differences</div>
                 <ul className="flex flex-col gap-1.5">
                   {result.differences.map((d, i) => (
-                    <li key={i} className="text-xs leading-relaxed flex gap-1.5" style={{ color: "#94a3b8" }}>
+                    <li key={i} className="text-xs leading-relaxed flex gap-1.5" style={{ color: "var(--accent-light)" }}>
                       <span style={{ color: "#ef4444", flexShrink: 0 }}>·</span>{d}
                     </li>
                   ))}
@@ -139,16 +139,16 @@ export default function ComparePanel({ patents, result, loading, onCompare, onRe
             </div>
 
             {/* Novelty assessment */}
-            <div className="rounded-lg p-3" style={{ background: "rgba(226,232,240,0.08)", border: "1px solid rgba(226,232,240,0.3)" }}>
+            <div className="rounded p-3" style={{ background: "rgba(232,228,222,0.08)", border: "1px solid rgba(232,228,222,0.3)" }}>
               <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--accent-light)" }}>Novelty Assessment</div>
-              <p className="text-xs leading-relaxed" style={{ color: "#94a3b8" }}>{result.noveltyAssessment}</p>
+              <p className="text-xs leading-relaxed" style={{ color: "var(--accent-light)" }}>{result.noveltyAssessment}</p>
             </div>
 
             {/* Comparison table */}
             {result.tableRows.length > 0 && (
               <div>
                 <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--muted)" }}>Comparison Table</div>
-                <div className="rounded-lg overflow-hidden" style={{ border: "1px solid var(--border)" }}>
+                <div className="rounded overflow-hidden" style={{ border: "1px solid var(--border)" }}>
                   <table className="w-full text-xs">
                     <thead>
                       <tr style={{ background: "var(--surface-2)" }}>
@@ -169,7 +169,7 @@ export default function ComparePanel({ patents, result, loading, onCompare, onRe
                             {row.dimension}
                           </td>
                           {row.values.map((v, j) => (
-                            <td key={j} className="px-3 py-2" style={{ color: "#94a3b8" }}>{v}</td>
+                            <td key={j} className="px-3 py-2" style={{ color: "var(--accent-light)" }}>{v}</td>
                           ))}
                         </tr>
                       ))}

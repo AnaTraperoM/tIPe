@@ -2,47 +2,40 @@ import type { Patent, CitationGraph } from "./types";
 
 // ─── Colour palette ──────────────────────────────────────────────────────────
 // L2 subcategory → hex colour (used for dot / chip rendering)
+// Gradient from #ffd89b (warm gold) → #19547b (deep teal)
 export const CATEGORY_COLORS: Record<string, string> = {
-  // AI & Machine Learning family — bold violet
-  "Natural Language Processing": "#6d28d9",
-  "Computer Vision":             "#5b21b6",
-  "Reinforcement Learning":      "#7c3aed",
-  "AI Hardware & Chips":         "#4c1d95",
-  // Biotechnology family — bold emerald
-  "Gene Editing":                "#059669",
-  "Drug Discovery":              "#047857",
-  "Synthetic Biology":           "#0d9488",
-  "Diagnostics & Imaging":       "#0f766e",
-  // Semiconductors family — bold amber/orange
-  "Memory & Storage":            "#d97706",
-  "Processor Architecture":      "#b45309",
-  "Advanced Packaging":          "#c2410c",
-  "Photonics & Optics":          "#a16207",
-  // Robotics & Automation family — bold red/rose
-  "Autonomous Vehicles":         "#dc2626",
-  "Industrial Automation":       "#e11d48",
-  "Drone Technology":            "#be123c",
-  "Humanoid Robots":             "#b91c1c",
-  // Telecommunications family — bold blue
-  "5G & 6G Networks":            "#2563eb",
-  "Satellite Communication":     "#1d4ed8",
-  "Network Security":            "#1e40af",
-  "IoT & Edge Computing":        "#0369a1",
-  // Clean Energy family — bold green
-  "Solar Energy":                "#4d7c0f",
-  "Battery Technology":          "#65a30d",
-  "Hydrogen & Fuel Cells":       "#3f6212",
-  "Wind & Ocean Energy":         "#15803d",
-  // Healthcare Tech family — bold pink/magenta
-  "Medical Devices":             "#be185d",
-  "Digital Health":              "#a21caf",
-  "Neurotechnology":             "#7e22ce",
-  "Precision Medicine":          "#9d174d",
-  // Advanced Manufacturing family — bold teal/cyan
-  "3D Printing & Additive":      "#0d9488",
-  "Smart Materials":             "#0f766e",
-  "Quantum Technology":          "#0e7490",
-  "Space Technology":            "#155e75",
+  "Natural Language Processing": "#ffd89b",
+  "Computer Vision":             "#f4d093",
+  "Reinforcement Learning":      "#e9c88b",
+  "AI Hardware & Chips":         "#dec083",
+  "Gene Editing":                "#d3b87b",
+  "Drug Discovery":              "#c8b073",
+  "Synthetic Biology":           "#bda86b",
+  "Diagnostics & Imaging":       "#b2a063",
+  "Memory & Storage":            "#a7985b",
+  "Processor Architecture":      "#9c9053",
+  "Advanced Packaging":          "#91884b",
+  "Photonics & Optics":          "#868043",
+  "Autonomous Vehicles":         "#7b783b",
+  "Industrial Automation":       "#707033",
+  "Drone Technology":            "#65682b",
+  "Humanoid Robots":             "#5a6023",
+  "5G & 6G Networks":            "#4f581b",
+  "Satellite Communication":     "#475220",
+  "Network Security":            "#3f4c26",
+  "IoT & Edge Computing":        "#374e2e",
+  "Solar Energy":                "#2f5036",
+  "Battery Technology":          "#27523e",
+  "Hydrogen & Fuel Cells":       "#235448",
+  "Wind & Ocean Energy":         "#1f5652",
+  "Medical Devices":             "#1d5558",
+  "Digital Health":              "#1b555f",
+  "Neurotechnology":             "#1a5566",
+  "Precision Medicine":          "#19546e",
+  "3D Printing & Additive":      "#195474",
+  "Smart Materials":             "#19547a",
+  "Quantum Technology":          "#19547b",
+  "Space Technology":            "#19547b",
 };
 
 // ─── Domain (L1) hierarchy ────────────────────────────────────────────────────
@@ -55,42 +48,42 @@ export interface DomainDef {
 export const DOMAIN_HIERARCHY: DomainDef[] = [
   {
     name: "AI & Machine Learning",
-    color: "#6d28d9",
+    color: "#ffd89b",
     subcategories: ["Natural Language Processing", "Computer Vision", "Reinforcement Learning", "AI Hardware & Chips"],
   },
   {
     name: "Biotechnology",
-    color: "#059669",
+    color: "#d3b87b",
     subcategories: ["Gene Editing", "Drug Discovery", "Synthetic Biology", "Diagnostics & Imaging"],
   },
   {
     name: "Semiconductors",
-    color: "#d97706",
+    color: "#a7985b",
     subcategories: ["Memory & Storage", "Processor Architecture", "Advanced Packaging", "Photonics & Optics"],
   },
   {
     name: "Robotics & Automation",
-    color: "#dc2626",
+    color: "#7b783b",
     subcategories: ["Autonomous Vehicles", "Industrial Automation", "Drone Technology", "Humanoid Robots"],
   },
   {
     name: "Telecommunications",
-    color: "#2563eb",
+    color: "#4f581b",
     subcategories: ["5G & 6G Networks", "Satellite Communication", "Network Security", "IoT & Edge Computing"],
   },
   {
     name: "Clean Energy",
-    color: "#4d7c0f",
+    color: "#2f5036",
     subcategories: ["Solar Energy", "Battery Technology", "Hydrogen & Fuel Cells", "Wind & Ocean Energy"],
   },
   {
     name: "Healthcare Technology",
-    color: "#be185d",
+    color: "#1d5558",
     subcategories: ["Medical Devices", "Digital Health", "Neurotechnology", "Precision Medicine"],
   },
   {
     name: "Advanced Manufacturing",
-    color: "#0d9488",
+    color: "#19547b",
     subcategories: ["3D Printing & Additive", "Smart Materials", "Quantum Technology", "Space Technology"],
   },
 ];
