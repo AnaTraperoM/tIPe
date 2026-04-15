@@ -6,6 +6,11 @@ import Sidebar from "./components/Sidebar";
 import PatentClusterMap from "./components/PatentClusterMap";
 import ComparePanel from "./components/ComparePanel";
 import DatasetPanel from "./components/DatasetPanel";
+import LandingOverlay from "./components/LandingOverlay";
+import IdeaInputPanel from "./components/IdeaInputPanel";
+import AnalysisProgress from "./components/AnalysisProgress";
+import LandscapeReport from "./components/LandscapeReport";
+import PlugAndCreate from "./components/PlugAndCreate";
 import type {
   Patent,
   TranslationResult,
@@ -16,6 +21,9 @@ import type {
   HistoryEntry,
   ConceptSearchResult,
   QueryInterpretation,
+  FTOReport,
+  FTOProgress,
+  PlugCreateResult,
 } from "./lib/types";
 import { CATEGORY_COLORS } from "./lib/mock-data";
 import { computeCoordinates } from "./lib/embeddings";
@@ -82,6 +90,16 @@ export default function Home() {
 
   // Sidebar tab (lifted so page can switch it)
   const [sidebarTab, setSidebarTab] = useState<"patent" | "upload" | "compare" | "history">("patent");
+
+  // Workflow state
+  const [workflow, setWorkflow] = useState<"landing" | "idea" | "explore" | "plug-create">("landing");
+  const [ftoReport, setFtoReport] = useState<FTOReport | null>(null);
+  const [ftoLoading, setFtoLoading] = useState(false);
+  const [ftoProgress, setFtoProgress] = useState<FTOProgress[]>([]);
+  const [ftoIdeaBrief, setFtoIdeaBrief] = useState("");
+  const [plugCreatePatents, setPlugCreatePatents] = useState<Map<string, Patent>>(new Map());
+  const [plugCreateResult, setPlugCreateResult] = useState<PlugCreateResult | null>(null);
+  const [plugCreateLoading, setPlugCreateLoading] = useState(false);
 
   // Toast error
   const [error, setError] = useState<string | null>(null);
@@ -408,6 +426,117 @@ export default function Home() {
     }
   }, [showError, addHistory, uploadRadius]);
 
+  // ── FTO Analysis ──
+  const handleFTOSubmit = useCallback(async (data: { type: string; content: string; brief: string; file?: File }) => {
+    setFtoLoading(true);
+    setFtoReport(null);
+    setFtoIdeaBrief(data.brief);
+    setFtoProgress([
+      { step: "features", status: "active", message: "Extracting features from your description" },
+      { step: "search", status: "pending", message: "Building optimized query" },
+      { step: "screening", status: "pending", message: "IPC screening, abstract relevance" },
+      { step: "claims", status: "pending", message: "Analyzing patent claims" },
+      { step: "report", status: "pending", message: "Compiling landscape report" },
+    ]);
+
+    // Simulate progress steps
+    const updateProgress = (activeStep: FTOProgress["step"]) => {
+      setFtoProgress(prev => prev.map(s => ({
+        ...s,
+        status: s.step === activeStep ? "active" : (
+          ["features", "search", "screening", "claims", "report"].indexOf(s.step) <
+          ["features", "search", "screening", "claims", "report"].indexOf(activeStep) ? "done" : "pending"
+        ),
+      })));
+    };
+
+    // Animate through steps while waiting for API
+    const delays = [800, 1600, 2400, 3200];
+    const timers = delays.map((d, i) =>
+      setTimeout(() => updateProgress(["search", "screening", "claims", "report"][i] as FTOProgress["step"]), d)
+    );
+
+    try {
+      let content = data.content;
+      if (data.file) {
+        content = `[Uploaded file: ${data.file.name}] ${data.brief}`;
+      }
+
+      const res = await fetch("/api/ai/fto-analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ brief: data.brief, content, patentCount: 20 }),
+      });
+      if (!res.ok) throw new Error("FTO analysis failed");
+      const report: FTOReport = await res.json();
+      setFtoReport(report);
+      setFtoProgress(prev => prev.map(s => ({ ...s, status: "done" as const })));
+    } catch (err) {
+      showError("FTO analysis failed. Please try again.");
+      console.error(err);
+    } finally {
+      timers.forEach(clearTimeout);
+      setFtoLoading(false);
+    }
+  }, [showError]);
+
+  // ── Plug & Create ──
+  const handlePlugCreateToggle = useCallback((patent: Patent) => {
+    setPlugCreatePatents(prev => {
+      const next = new Map(prev);
+      if (next.has(patent.id)) next.delete(patent.id);
+      else next.set(patent.id, patent);
+      return next;
+    });
+    setPlugCreateResult(null);
+  }, []);
+
+  const handlePlugCreateGenerate = useCallback(async () => {
+    const patentList = [...plugCreatePatents.values()];
+    if (patentList.length < 2) return;
+    setPlugCreateLoading(true);
+    setPlugCreateResult(null);
+    try {
+      const res = await fetch("/api/ai/plug-create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ patents: patentList }),
+      });
+      if (!res.ok) throw new Error("Plug & Create failed");
+      const result: PlugCreateResult = await res.json();
+      setPlugCreateResult(result);
+    } catch (err) {
+      showError("Idea generation failed. Please try again.");
+      console.error(err);
+    } finally {
+      setPlugCreateLoading(false);
+    }
+  }, [plugCreatePatents, showError]);
+
+  const handlePlugCreateSearch = useCallback((query: string): Patent[] => {
+    const q = query.toLowerCase();
+    return patents.filter(p =>
+      p.title.toLowerCase().includes(q) ||
+      p.category.toLowerCase().includes(q) ||
+      (p.abstract ?? "").toLowerCase().includes(q)
+    ).slice(0, 20);
+  }, [patents]);
+
+  const handlePlugCreateCheckLandscape = useCallback((description: string) => {
+    setWorkflow("idea");
+    setFtoReport(null);
+    setFtoIdeaBrief(description.slice(0, 100));
+  }, []);
+
+  const handleGoToMainMenu = useCallback(() => {
+    setWorkflow("landing");
+    setFtoReport(null);
+    setFtoLoading(false);
+    setFtoProgress([]);
+    setPlugCreateResult(null);
+    setPlugCreatePatents(new Map());
+  }, []);
+
   // Analyze text idea
   const handleAnalyzeIdea = useCallback(async (text: string) => {
     setUploadLoading(true);
@@ -432,6 +561,13 @@ export default function Home() {
     }
   }, [showError, addHistory, uploadRadius]);
 
+  // Determine if left panel should show (idea workflow)
+  const showIdeaPanel = workflow === "idea" && !ftoLoading && !ftoReport;
+  const showProgressPanel = workflow === "idea" && ftoLoading;
+  const showReportPanel = workflow === "idea" && ftoReport && !ftoLoading;
+  const showPlugCreatePanel = workflow === "plug-create";
+  const showLeftPanel = showIdeaPanel || showProgressPanel || showReportPanel || showPlugCreatePanel;
+
   return (
     <div className="flex flex-col h-full">
       <Header
@@ -442,47 +578,91 @@ export default function Home() {
         dataSource={dataSource}
       />
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar
-          open={drawerOpen}
-          onClose={handleCloseSidebar}
-          selected={selected}
-          onClear={handleClearSelected}
-          onUpload={handleUpload}
-          onAnalyzeIdea={handleAnalyzeIdea}
-          uploadRadius={uploadRadius}
-          onUploadRadiusChange={setUploadRadius}
-          translation={translation}
-          translationLoading={translationLoading}
-          onTranslate={handleTranslate}
-          uploadResult={uploadResult}
-          uploadLoading={uploadLoading}
-          compareCount={compareSet.size}
-          onOpenCompare={handleOpenCompare}
-          onSelectPatent={handleSelectPatent}
-          sessionHistory={sessionHistory}
-          onClearHistory={handleClearHistory}
-          onResetSelection={handleResetSelection}
-          onResetCompare={handleResetCompare}
-          onResetFilters={handleResetFilters}
-          onResetUpload={handleResetUpload}
-          onResetAll={handleResetAll}
-          tab={sidebarTab}
-          onTabChange={setSidebarTab}
-          groupSelection={groupSelection}
-          groupSummary={groupSummary}
-          groupSummaryLoading={groupSummaryLoading}
-          onGroupSummarize={handleGroupSummarizeNoArgs}
-          onGroupClose={handleGroupClose}
-          queryInterpretation={queryInterpretation}
-        />
+        {/* Left panel — shows for "I Have an Idea" and "Plug & Create" workflows */}
+        {showLeftPanel && (
+          <div style={{ width: "75vw", flexShrink: 0 }}>
+            {showIdeaPanel && (
+              <IdeaInputPanel
+                onSubmit={handleFTOSubmit}
+                onClose={() => setWorkflow("explore")}
+                onMainMenu={handleGoToMainMenu}
+              />
+            )}
+            {showProgressPanel && (
+              <AnalysisProgress steps={ftoProgress} brief={ftoIdeaBrief} />
+            )}
+            {showReportPanel && ftoReport && (
+              <LandscapeReport
+                report={ftoReport}
+                onMainMenu={handleGoToMainMenu}
+                onViewOnMap={() => setWorkflow("explore")}
+              />
+            )}
+            {showPlugCreatePanel && (
+              <PlugAndCreate
+                patents={patents}
+                selectedPatents={plugCreatePatents}
+                onTogglePatent={handlePlugCreateToggle}
+                onGenerate={handlePlugCreateGenerate}
+                onCheckLandscape={handlePlugCreateCheckLandscape}
+                result={plugCreateResult}
+                loading={plugCreateLoading}
+                onClose={() => setWorkflow("explore")}
+                onMainMenu={handleGoToMainMenu}
+                onSearch={handlePlugCreateSearch}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Sidebar — only in explore mode */}
+        {workflow === "explore" && (
+          <Sidebar
+            open={drawerOpen}
+            onClose={handleCloseSidebar}
+            selected={selected}
+            onClear={handleClearSelected}
+            onUpload={handleUpload}
+            onAnalyzeIdea={handleAnalyzeIdea}
+            uploadRadius={uploadRadius}
+            onUploadRadiusChange={setUploadRadius}
+            translation={translation}
+            translationLoading={translationLoading}
+            onTranslate={handleTranslate}
+            uploadResult={uploadResult}
+            uploadLoading={uploadLoading}
+            compareCount={compareSet.size}
+            onOpenCompare={handleOpenCompare}
+            onSelectPatent={handleSelectPatent}
+            sessionHistory={sessionHistory}
+            onClearHistory={handleClearHistory}
+            onResetSelection={handleResetSelection}
+            onResetCompare={handleResetCompare}
+            onResetFilters={handleResetFilters}
+            onResetUpload={handleResetUpload}
+            onResetAll={handleResetAll}
+            tab={sidebarTab}
+            onTabChange={setSidebarTab}
+            groupSelection={groupSelection}
+            groupSummary={groupSummary}
+            groupSummaryLoading={groupSummaryLoading}
+            onGroupSummarize={handleGroupSummarizeNoArgs}
+            onGroupClose={handleGroupClose}
+            queryInterpretation={queryInterpretation}
+            onCompareMode={() => { setDrawerOpen(true); setSidebarTab("compare"); }}
+            onPlugCreate={() => { setWorkflow("plug-create"); setPlugCreatePatents(new Map()); setPlugCreateResult(null); }}
+            onMainMenu={handleGoToMainMenu}
+          />
+        )}
+
         <main className="flex-1 overflow-hidden relative flex flex-col">
           <div className="flex-1 overflow-hidden relative">
             <PatentClusterMap
               patents={visiblePatents}
-              onSelect={handleSelectPatent}
+              onSelect={workflow === "plug-create" ? (p: Patent | null) => { if (p) handlePlugCreateToggle(p); } : handleSelectPatent}
               selected={selected}
               uploadedPoint={uploadedPoint}
-              compareSet={compareSetIds}
+              compareSet={workflow === "plug-create" ? new Set(plugCreatePatents.keys()) : compareSetIds}
               onToggleCompare={handleToggleCompare}
               searching={searching || conceptLoading}
               drawMode={drawMode}
@@ -514,6 +694,14 @@ export default function Home() {
           />
         </main>
       </div>
+
+      {/* Landing overlay */}
+      {workflow === "landing" && (
+        <LandingOverlay
+          onIdeaClick={() => setWorkflow("idea")}
+          onExploreClick={() => setWorkflow("explore")}
+        />
+      )}
 
       {error && (
         <div

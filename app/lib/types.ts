@@ -104,3 +104,66 @@ export interface HistoryEntry {
   timestamp: Date;
   patentId?: string;
 }
+
+// ── FTO Report types ──
+
+export interface FTOFeature {
+  type: string;
+  description: string;
+  keywords: string[];
+}
+
+export interface FTOClaim {
+  claimNumber: number;
+  patentId: string;
+  patentTitle: string;
+  patentStatus: "active" | "pending" | "abandoned";
+  claimText: string;
+  overlapLevel: "high" | "moderate" | "low";
+  explanation: string;
+}
+
+export interface FTOPatentRow {
+  patentId: string;
+  title: string;
+  status: "active" | "pending" | "abandoned";
+  assignee: string;
+  relevance: "high" | "medium" | "low";
+  year: number;
+}
+
+export interface FTOReport {
+  brief: string;
+  timestamp: string;
+  whiteSpace: {
+    summary: string;
+    gaps: string[];
+    suggestedAngles: string[];
+  };
+  features: FTOFeature[];
+  landscape: {
+    totalAnalyzed: number;
+    highRelevance: number;
+    mediumRelevance: number;
+    lowRelevance: number;
+    topAssignees: { name: string; count: number }[];
+  };
+  claims: FTOClaim[];
+  patents: FTOPatentRow[];
+}
+
+export interface FTOProgress {
+  step: "features" | "search" | "screening" | "claims" | "report";
+  status: "done" | "active" | "pending";
+  message: string;
+}
+
+// ── Plug & Create types ──
+
+export interface PlugCreateResult {
+  title: string;
+  description: string;
+  sourceElements: { patentId: string; patentTitle: string; feature: string }[];
+  noveltyAssessment: string;
+  suggestedClaims: string[];
+}
