@@ -19,7 +19,7 @@ export default function GroupSummaryPanel({ patents, result, loading, onSummariz
 
   return (
     <div
-      className="absolute left-3 top-3 rounded-xl flex flex-col gap-3 p-4"
+      className="absolute left-3 top-3 rounded flex flex-col gap-3 p-4"
       style={{
         width: 280,
         background: "rgba(12,11,10,0.97)",
@@ -54,7 +54,7 @@ export default function GroupSummaryPanel({ patents, result, loading, onSummariz
         {categories.map(cat => (
           <span
             key={cat}
-            className="text-xs px-2 py-0.5 rounded-full"
+            className="text-xs px-2 py-0.5 rounded"
             style={{
               background: `${CATEGORY_COLORS[cat] ?? "#888"}22`,
               color: CATEGORY_COLORS[cat] ?? "#888",
@@ -71,7 +71,7 @@ export default function GroupSummaryPanel({ patents, result, loading, onSummariz
         <button
           onClick={onSummarize}
           disabled={loading}
-          className="text-xs py-2 px-3 rounded-lg font-medium transition-opacity disabled:opacity-50"
+          className="text-xs py-2 px-3 rounded font-medium transition-opacity disabled:opacity-50"
           style={{ background: "var(--accent)", color: "#000" }}
         >
           {loading ? "Summarizing…" : "Summarize with AI"}
@@ -93,7 +93,7 @@ export default function GroupSummaryPanel({ patents, result, loading, onSummariz
                 {result.themes.map(theme => (
                   <span
                     key={theme}
-                    className="text-xs px-2 py-0.5 rounded-full"
+                    className="text-xs px-2 py-0.5 rounded"
                     style={{ background: "var(--surface-2)", color: "var(--accent-light)", border: "1px solid var(--border)" }}
                   >
                     {theme}
@@ -105,7 +105,7 @@ export default function GroupSummaryPanel({ patents, result, loading, onSummariz
 
           <button
             onClick={onSummarize}
-            className="text-xs py-1.5 px-3 rounded-lg transition-opacity hover:opacity-70"
+            className="text-xs py-1.5 px-3 rounded transition-opacity hover:opacity-70"
             style={{ background: "var(--surface-2)", color: "var(--muted)", border: "1px solid var(--border)" }}
           >
             Re-summarize

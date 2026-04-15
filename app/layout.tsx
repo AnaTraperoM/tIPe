@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
-import { Inter, DM_Mono } from "next/font/google";
+import localFont from "next/font/local";
+import { DM_Mono } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
-  subsets: ["latin"],
+const inter = localFont({
+  src: [
+    { path: "./fonts/InterVariable.ttf", style: "normal" },
+    { path: "./fonts/InterVariable-Italic.ttf", style: "italic" },
+  ],
   variable: "--font-sans",
   display: "swap",
 });

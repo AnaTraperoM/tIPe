@@ -21,7 +21,7 @@ export default function Header({ onSearch, searching, resultCount, mock, dataSou
   return (
     <header
       className="flex items-center justify-between px-6 h-11 flex-shrink-0"
-      style={{ background: "rgba(10,10,15,0.75)", borderBottom: "1px dashed rgba(255,255,255,0.08)", backdropFilter: "blur(12px)" }}
+      style={{ background: "rgba(17,17,16,0.75)", borderBottom: "1px solid rgba(255,255,255,0.1)", backdropFilter: "blur(12px)" }}
     >
       <div className="flex items-center gap-3">
         <span className="text-sm font-bold tracking-tight" style={{ color: "var(--foreground)" }}>
@@ -34,7 +34,7 @@ export default function Header({ onSearch, searching, resultCount, mock, dataSou
 
       <div
         className="flex items-center gap-2 px-1 py-1"
-        style={{ borderBottom: "1px dashed rgba(255,255,255,0.1)", width: 280 }}
+        style={{ borderBottom: "1px solid rgba(255,255,255,0.1)", width: 280 }}
       >
         {searching ? (
           <svg className="animate-spin" width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth={2.5}>

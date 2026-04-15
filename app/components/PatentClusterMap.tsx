@@ -583,8 +583,8 @@ export default function PatentClusterMap({
       <div className="absolute top-3 left-3 flex flex-col gap-2" style={{ zIndex: 15, width: 280 }}>
         <button
           onClick={onToggleDrawer}
-          className="self-start flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all hover:shadow-sm"
-          style={{ background: "rgba(15,15,24,0.7)", border: "1px dashed rgba(255,255,255,0.1)", color: "var(--foreground)", boxShadow: "0 1px 8px rgba(0,0,0,0.3)", backdropFilter: "blur(12px)" }}
+          className="self-start flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded font-medium transition-all hover:shadow-sm"
+          style={{ background: "rgba(20,19,17,0.7)", border: "1px solid rgba(255,255,255,0.1)", color: "var(--foreground)", boxShadow: "0 1px 8px rgba(0,0,0,0.3)", backdropFilter: "blur(12px)" }}
         >
           <svg width={13} height={13} viewBox="0 0 16 16" fill="none">
             <rect x="1" y="3" width="14" height="1.5" rx="0.75" fill="currentColor" />
@@ -596,8 +596,8 @@ export default function PatentClusterMap({
 
         {/* Concept search bar */}
         <div
-          className="flex flex-col rounded-xl overflow-hidden"
-          style={{ background: "rgba(15,15,24,0.7)", border: "1px dashed rgba(255,255,255,0.1)", boxShadow: "0 2px 16px rgba(0,0,0,0.3)", backdropFilter: "blur(12px)" }}
+          className="flex flex-col rounded overflow-hidden"
+          style={{ background: "rgba(20,19,17,0.7)", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 2px 16px rgba(0,0,0,0.3)", backdropFilter: "blur(12px)" }}
         >
           <div className="flex items-center gap-2 px-3 py-2">
             <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth={2.5} style={{ flexShrink: 0 }}>
@@ -639,8 +639,8 @@ export default function PatentClusterMap({
 
       {/* Draw mode button */}
       <div
-        className="absolute top-3 right-3 flex gap-1 rounded-lg p-1"
-        style={{ background: "rgba(15,15,24,0.7)", border: "1px dashed rgba(255,255,255,0.1)", boxShadow: "0 1px 8px rgba(0,0,0,0.3)", backdropFilter: "blur(12px)", zIndex: 15 }}
+        className="absolute top-3 right-3 flex gap-1 rounded p-1"
+        style={{ background: "rgba(20,19,17,0.7)", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 1px 8px rgba(0,0,0,0.3)", backdropFilter: "blur(12px)", zIndex: 15 }}
       >
         <button
           onClick={() => onDrawModeChange(!drawMode)}
@@ -657,8 +657,8 @@ export default function PatentClusterMap({
 
       {/* Mini-map */}
       <div
-        className="absolute top-12 right-3 rounded-lg overflow-hidden"
-        style={{ width: 120, height: 80, background: "rgba(10,10,15,0.8)", border: "1px dashed rgba(255,255,255,0.1)", boxShadow: "0 1px 8px rgba(0,0,0,0.4)", zIndex: 15 }}
+        className="absolute top-12 right-3 rounded overflow-hidden"
+        style={{ width: 120, height: 80, background: "rgba(17,17,16,0.8)", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 1px 8px rgba(0,0,0,0.4)", zIndex: 15 }}
       >
         <svg ref={minimapRef} width={120} height={80} />
       </div>
@@ -666,8 +666,8 @@ export default function PatentClusterMap({
       {/* Compare badge */}
       {compareSet.size >= 1 && (
         <div className="absolute bottom-3 right-3" style={{ zIndex: 15 }}>
-          <div className="text-xs px-3 py-1.5 rounded-lg font-medium"
-            style={{ background: "var(--accent)", color: "#0a0a0f", boxShadow: "0 2px 8px rgba(226,232,240,0.15)" }}>
+          <div className="text-xs px-3 py-1.5 rounded font-medium"
+            style={{ background: "var(--accent)", color: "#111110", boxShadow: "0 2px 8px rgba(232,228,222,0.15)" }}>
             {compareSet.size} selected — Shift+click to add · see Compare tab
           </div>
         </div>
@@ -675,8 +675,8 @@ export default function PatentClusterMap({
 
       {/* Loading overlay */}
       {searching && (
-        <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(10,10,15,0.8)", zIndex: 20 }}>
-          <div className="flex items-center gap-2 text-sm px-4 py-3 rounded-xl" style={{ background: "var(--surface)", border: "1px dashed rgba(255,255,255,0.1)", color: "var(--muted)", boxShadow: "0 4px 16px rgba(0,0,0,0.3)", backdropFilter: "blur(8px)" }}>
+        <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(17,17,16,0.8)", zIndex: 20 }}>
+          <div className="flex items-center gap-2 text-sm px-4 py-3 rounded" style={{ background: "var(--surface)", border: "1px solid rgba(255,255,255,0.1)", color: "var(--muted)", boxShadow: "0 4px 16px rgba(0,0,0,0.3)", backdropFilter: "blur(8px)" }}>
             <svg className="animate-spin" width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth={2.5}>
               <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
             </svg>
