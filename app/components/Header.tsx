@@ -21,14 +21,11 @@ export default function Header({ onSearch, searching, resultCount, mock, dataSou
   return (
     <header
       className="flex items-center justify-between px-6 h-11 flex-shrink-0"
-      style={{ background: "rgba(17,17,16,0.75)", borderBottom: "1px solid rgba(255,255,255,0.1)", backdropFilter: "blur(12px)" }}
+      style={{ background: "#000000", borderBottom: "1px solid rgba(255,255,255,0.1)", position: "relative", zIndex: 10 }}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center">
         <span className="text-sm font-bold tracking-tight" style={{ color: "var(--foreground)" }}>
           t<span style={{ color: "var(--foreground)" }}>IP</span>e
-        </span>
-        <span className="text-[10px] tracking-wider uppercase" style={{ color: "var(--muted)" }}>
-          Patent Explorer
         </span>
       </div>
 

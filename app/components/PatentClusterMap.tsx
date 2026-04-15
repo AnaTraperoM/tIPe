@@ -527,7 +527,7 @@ export default function PatentClusterMap({
       <canvas
         ref={canvasRef}
         className="absolute inset-0"
-        style={{ zIndex: 1, pointerEvents: "none", background: "#0a0a0f" }}
+        style={{ zIndex: 1, pointerEvents: "none", background: "#000000" }}
       />
       {/* SVG on top: zoom surface + contours/hull/upload overlays */}
       <svg
