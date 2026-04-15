@@ -38,6 +38,9 @@ interface Props {
   open: boolean;
   onClose: () => void;
   queryInterpretation?: QueryInterpretation | null;
+  onCompareMode?: () => void;
+  onPlugCreate?: () => void;
+  onMainMenu?: () => void;
 }
 
 type Tab = "patent" | "upload" | "compare" | "history";
@@ -74,6 +77,9 @@ export default function Sidebar({
   onClose,
   onClearHistory,
   queryInterpretation,
+  onCompareMode,
+  onPlugCreate,
+  onMainMenu,
 }: Props) {
   const [dragOver, setDragOver] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<string | null>(null);
@@ -377,11 +383,17 @@ export default function Sidebar({
               { icon: "🔍", title: "Search & Explore", desc: "Search for patents, click to view details and translate with AI", action: "search" as const },
               { icon: "↑", title: "Upload & Classify", desc: "Drop a patent document to find where it lands and discover related patents", action: "upload" as const },
               { icon: "⬡", title: "Filter & Summarize", desc: "Filter by category or year, draw a circle to summarize a cluster", action: "filter" as const },
+              { icon: "⊞", title: "Compare", desc: "Click patents on the map to add them to a side-by-side comparison", action: "compare" as const },
+              { icon: "⚡", title: "Plug & Create", desc: "Select 2+ patents and generate a novel idea combining their technologies", action: "plug-create" as const },
+              { icon: "🏠", title: "Main Menu", desc: "Go back to the start screen", action: "main-menu" as const },
             ] as const).map(wf => (
               <button
                 key={wf.action}
                 onClick={() => {
                   if (wf.action === "upload") { onTabChange("upload"); }
+                  else if (wf.action === "compare") { onCompareMode?.(); }
+                  else if (wf.action === "plug-create") { onPlugCreate?.(); }
+                  else if (wf.action === "main-menu") { onMainMenu?.(); }
                   else { onClose(); }
                 }}
                 className="flex gap-3 items-start text-left p-3 rounded transition-all"

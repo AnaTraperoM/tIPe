@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { Patent, TranslationResult, ComparisonResult, UploadAnalysisResult, GroupSummaryResult } from "./types";
+import type { Patent, TranslationResult, ComparisonResult, UploadAnalysisResult, GroupSummaryResult, FTOReport, PlugCreateResult } from "./types";
 import { computeUploadCoordinates } from "./embeddings";
 
 export function isAnthropicConfigured(): boolean {
@@ -346,6 +346,211 @@ Respond with valid JSON only (no markdown fences):
     };
   }
   return fallback;
+}
+
+// ─── FTO Patent Landscape Analysis ──────────────────────────────────────────
+export async function analyzeFTO(
+  brief: string,
+  content: string,
+  patentCount: number,
+  allPatents: Patent[],
+): Promise<FTOReport> {
+  const patentSamples = allPatents.slice(0, Math.min(patentCount * 3, 120))
+    .map(p => `${p.id}: ${p.title} (${p.year}, ${p.category}, ${p.assignee ?? "Unknown"})\nAbstract: ${(p.abstract ?? "").slice(0, 200)}`)
+    .join("\n\n");
+
+  const prompt = `You are a senior patent landscape analyst performing a thorough Freedom-to-Operate style analysis. The user has submitted an innovation idea and you must analyze it against existing patents.
+
+IMPORTANT: Think deeply about every aspect. This is a critical analysis that could inform patent filing decisions.
+
+User's brief description: "${brief}"
+
+Detailed description:
+${content.slice(0, 8000)}
+
+Here are patents from our database to analyze against (select the ${patentCount} most relevant):
+${patentSamples}
+
+Respond with valid JSON only (no markdown fences). Be thorough and specific:
+{
+  "whiteSpace": {
+    "summary": "<3-4 sentence analysis of where the innovation has novel space>",
+    "gaps": ["<specific gap 1 in existing landscape>", "<gap 2>", "<gap 3>", "<gap 4>"],
+    "suggestedAngles": ["<filing angle 1>", "<angle 2>", "<angle 3>"]
+  },
+  "features": [
+    { "type": "Technical Domain", "description": "<specific domain>", "keywords": ["<kw1>", "<kw2>", "<kw3>"] },
+    { "type": "Core Innovation", "description": "<what is new>", "keywords": ["<kw1>", "<kw2>", "<kw3>"] }
+  ],
+  "landscape": {
+    "totalAnalyzed": <number>,
+    "highRelevance": <number>,
+    "mediumRelevance": <number>,
+    "lowRelevance": <number>,
+    "topAssignees": [{ "name": "<company>", "count": <number> }]
+  },
+  "claims": [
+    {
+      "claimNumber": <number>,
+      "patentId": "<actual patent ID from the list>",
+      "patentTitle": "<title>",
+      "patentStatus": "<active|pending|abandoned>",
+      "claimText": "<the relevant claim text — write a realistic claim>",
+      "overlapLevel": "<high|moderate|low>",
+      "explanation": "<why this claim matters to the user's idea>"
+    }
+  ],
+  "patents": [
+    {
+      "patentId": "<ID>",
+      "title": "<title>",
+      "status": "<active|pending|abandoned>",
+      "assignee": "<company>",
+      "relevance": "<high|medium|low>",
+      "year": <year>
+    }
+  ]
+}
+
+Sort claims by relevance (highest overlap first). Include up to 10 claims and up to ${patentCount} patents.`;
+
+  if (!isAnthropicConfigured()) {
+    return buildFallbackFTOReport(brief, allPatents, patentCount);
+  }
+
+  const message = await getClient().messages.create({
+    model: "claude-opus-4-6",
+    max_tokens: 4096,
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  const text = message.content[0].type === "text" ? message.content[0].text : "";
+  const parsed = parseJSON(text, null);
+
+  if (parsed && typeof parsed === "object") {
+    const p = parsed as Record<string, unknown>;
+    return {
+      brief,
+      timestamp: new Date().toISOString(),
+      whiteSpace: (p.whiteSpace as FTOReport["whiteSpace"]) ?? { summary: "", gaps: [], suggestedAngles: [] },
+      features: (p.features as FTOReport["features"]) ?? [],
+      landscape: (p.landscape as FTOReport["landscape"]) ?? { totalAnalyzed: 0, highRelevance: 0, mediumRelevance: 0, lowRelevance: 0, topAssignees: [] },
+      claims: (p.claims as FTOReport["claims"]) ?? [],
+      patents: (p.patents as FTOReport["patents"]) ?? [],
+    };
+  }
+
+  return buildFallbackFTOReport(brief, allPatents, patentCount);
+}
+
+function buildFallbackFTOReport(brief: string, allPatents: Patent[], count: number): FTOReport {
+  const sample = allPatents.slice(0, count);
+  return {
+    brief,
+    timestamp: new Date().toISOString(),
+    whiteSpace: {
+      summary: "AI analysis unavailable. Please configure ANTHROPIC_API_KEY for a full landscape report.",
+      gaps: ["Unable to determine gaps without AI analysis"],
+      suggestedAngles: ["Configure API key for patent filing suggestions"],
+    },
+    features: [
+      { type: "Technical Domain", description: "Unable to determine", keywords: [] },
+      { type: "Core Innovation", description: brief, keywords: [] },
+    ],
+    landscape: {
+      totalAnalyzed: sample.length,
+      highRelevance: 0,
+      mediumRelevance: 0,
+      lowRelevance: sample.length,
+      topAssignees: [],
+    },
+    claims: [],
+    patents: sample.map(p => ({
+      patentId: p.id,
+      title: p.title,
+      status: "active" as const,
+      assignee: p.assignee ?? "Unknown",
+      relevance: "low" as const,
+      year: p.year,
+    })),
+  };
+}
+
+// ─── Plug & Create ──────────────────────────────────────────────────────────
+export async function plugAndCreate(patents: Patent[]): Promise<PlugCreateResult> {
+  const patentList = patents
+    .map((p, i) => `[${i + 1}] ${p.id}: ${p.title} (${p.year}, ${p.category})\nAssignee: ${p.assignee ?? "Unknown"}\nAbstract: ${p.abstract ?? "N/A"}`)
+    .join("\n\n");
+
+  const prompt = `You are a brilliant innovation architect and patent strategist. You have been given ${patents.length} patents and your task is to deeply analyze the intersection of their technologies, identify non-obvious synergies, and generate a genuinely novel invention that combines elements from each.
+
+IMPORTANT: Think DEEPLY. Do not produce a shallow merge or trivial combination. Consider:
+- What technical principles from each patent could be combined in an unexpected way?
+- What problem does this combination solve that neither patent addresses alone?
+- What would make this combination truly patentable — what is the inventive step?
+- Consider the underlying physics, chemistry, biology, or engineering principles
+- Think about how the manufacturing or implementation would actually work
+- Consider market applications that don't exist yet
+
+Patents to combine:
+${patentList}
+
+Respond with valid JSON only (no markdown fences):
+{
+  "title": "<creative, specific title for the novel invention>",
+  "description": "<3-5 detailed paragraphs describing the invention. Include the technical mechanism, how it works, why this combination is non-obvious, what problems it solves, and potential applications. Be specific about the engineering/science.>",
+  "sourceElements": [
+    { "patentId": "<ID>", "patentTitle": "<title>", "feature": "<specific feature or claim borrowed from this patent and how it's adapted>" }
+  ],
+  "noveltyAssessment": "<2-3 paragraph assessment of why this combination is potentially novel. Reference specific claims from the source patents and explain why the combination creates something greater than the sum of its parts.>",
+  "suggestedClaims": ["<formal patent claim 1 starting with 'A method/system/apparatus for...'>", "<claim 2>", "<claim 3>"]
+}`;
+
+  if (!isAnthropicConfigured()) {
+    return {
+      title: "Novel Combination (AI unavailable)",
+      description: "Configure ANTHROPIC_API_KEY for AI-powered idea generation. The selected patents could be combined in interesting ways.",
+      sourceElements: patents.map(p => ({
+        patentId: p.id,
+        patentTitle: p.title,
+        feature: `Technology from ${p.category}`,
+      })),
+      noveltyAssessment: "AI analysis unavailable.",
+      suggestedClaims: [],
+    };
+  }
+
+  const message = await getClient().messages.create({
+    model: "claude-opus-4-6",
+    max_tokens: 4096,
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  const text = message.content[0].type === "text" ? message.content[0].text : "";
+  const parsed = parseJSON(text, null);
+
+  if (parsed && typeof parsed === "object") {
+    const p = parsed as Record<string, unknown>;
+    return {
+      title: (p.title as string) ?? "Novel Combination",
+      description: (p.description as string) ?? "",
+      sourceElements: (p.sourceElements as PlugCreateResult["sourceElements"]) ?? [],
+      noveltyAssessment: (p.noveltyAssessment as string) ?? "",
+      suggestedClaims: (p.suggestedClaims as string[]) ?? [],
+    };
+  }
+
+  return {
+    title: "Novel Combination",
+    description: "AI response could not be parsed. Please try again.",
+    sourceElements: patents.map(p => ({
+      patentId: p.id,
+      patentTitle: p.title,
+      feature: `Technology from ${p.category}`,
+    })),
+    noveltyAssessment: text.slice(0, 500),
+    suggestedClaims: [],
+  };
 }
 
 export type { UploadAnalysisResult };
