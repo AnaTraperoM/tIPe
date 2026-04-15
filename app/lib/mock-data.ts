@@ -4,38 +4,46 @@ import type { Patent, CitationGraph } from "./types";
 // L2 subcategory → hex colour (used for dot / chip rendering)
 // Gradient from #ffd89b (warm gold) → #19547b (deep teal)
 export const CATEGORY_COLORS: Record<string, string> = {
-  "Natural Language Processing": "#ffd89b",
-  "Computer Vision":             "#f4d093",
-  "Reinforcement Learning":      "#e9c88b",
-  "AI Hardware & Chips":         "#dec083",
-  "Gene Editing":                "#d3b87b",
-  "Drug Discovery":              "#c8b073",
-  "Synthetic Biology":           "#bda86b",
-  "Diagnostics & Imaging":       "#b2a063",
-  "Memory & Storage":            "#a7985b",
-  "Processor Architecture":      "#9c9053",
-  "Advanced Packaging":          "#91884b",
-  "Photonics & Optics":          "#868043",
-  "Autonomous Vehicles":         "#7b783b",
-  "Industrial Automation":       "#707033",
-  "Drone Technology":            "#65682b",
-  "Humanoid Robots":             "#5a6023",
-  "5G & 6G Networks":            "#4f581b",
-  "Satellite Communication":     "#475220",
-  "Network Security":            "#3f4c26",
-  "IoT & Edge Computing":        "#374e2e",
-  "Solar Energy":                "#2f5036",
-  "Battery Technology":          "#27523e",
-  "Hydrogen & Fuel Cells":       "#235448",
-  "Wind & Ocean Energy":         "#1f5652",
-  "Medical Devices":             "#1d5558",
-  "Digital Health":              "#1b555f",
-  "Neurotechnology":             "#1a5566",
-  "Precision Medicine":          "#19546e",
-  "3D Printing & Additive":      "#195474",
-  "Smart Materials":             "#19547a",
-  "Quantum Technology":          "#19547b",
-  "Space Technology":            "#19547b",
+  // AI & ML — Orange
+  "Natural Language Processing": "#F0A030",
+  "Computer Vision":             "#E89830",
+  "Reinforcement Learning":      "#D99028",
+  "AI Hardware & Chips":         "#CC8820",
+  // Biotechnology — Yellow
+  "Gene Editing":                "#E8D44D",
+  "Drug Discovery":              "#DBCA42",
+  "Synthetic Biology":           "#CEC038",
+  "Diagnostics & Imaging":       "#C1B62E",
+  // Semiconductors — Green
+  "Memory & Storage":            "#6B8B4A",
+  "Processor Architecture":      "#608242",
+  "Advanced Packaging":          "#55793A",
+  "Photonics & Optics":          "#4A7032",
+  // Robotics — Teal
+  "Autonomous Vehicles":         "#3D8B8B",
+  "Industrial Automation":       "#358282",
+  "Drone Technology":            "#2D7979",
+  "Humanoid Robots":             "#257070",
+  // Telecom — Blue
+  "5G & 6G Networks":            "#7B8FD4",
+  "Satellite Communication":     "#7085CC",
+  "Network Security":            "#657BC4",
+  "IoT & Edge Computing":        "#5A71BC",
+  // Clean Energy — Purple
+  "Solar Energy":                "#9B6BCD",
+  "Battery Technology":          "#9060C4",
+  "Hydrogen & Fuel Cells":       "#8555BB",
+  "Wind & Ocean Energy":         "#7A4AB2",
+  // Healthcare — Rose
+  "Medical Devices":             "#D4627B",
+  "Digital Health":              "#CB5872",
+  "Neurotechnology":             "#C24E69",
+  "Precision Medicine":          "#B94460",
+  // Advanced Manufacturing — Amber
+  "3D Printing & Additive":      "#C47D2A",
+  "Smart Materials":             "#B87324",
+  "Quantum Technology":          "#AC691E",
+  "Space Technology":            "#A05F18",
 };
 
 // ─── Domain (L1) hierarchy ────────────────────────────────────────────────────
@@ -48,42 +56,42 @@ export interface DomainDef {
 export const DOMAIN_HIERARCHY: DomainDef[] = [
   {
     name: "AI & Machine Learning",
-    color: "#ffd89b",
+    color: "#F0A030",
     subcategories: ["Natural Language Processing", "Computer Vision", "Reinforcement Learning", "AI Hardware & Chips"],
   },
   {
     name: "Biotechnology",
-    color: "#d3b87b",
+    color: "#E8D44D",
     subcategories: ["Gene Editing", "Drug Discovery", "Synthetic Biology", "Diagnostics & Imaging"],
   },
   {
     name: "Semiconductors",
-    color: "#a7985b",
+    color: "#6B8B4A",
     subcategories: ["Memory & Storage", "Processor Architecture", "Advanced Packaging", "Photonics & Optics"],
   },
   {
     name: "Robotics & Automation",
-    color: "#7b783b",
+    color: "#3D8B8B",
     subcategories: ["Autonomous Vehicles", "Industrial Automation", "Drone Technology", "Humanoid Robots"],
   },
   {
     name: "Telecommunications",
-    color: "#4f581b",
+    color: "#7B8FD4",
     subcategories: ["5G & 6G Networks", "Satellite Communication", "Network Security", "IoT & Edge Computing"],
   },
   {
     name: "Clean Energy",
-    color: "#2f5036",
+    color: "#9B6BCD",
     subcategories: ["Solar Energy", "Battery Technology", "Hydrogen & Fuel Cells", "Wind & Ocean Energy"],
   },
   {
     name: "Healthcare Technology",
-    color: "#1d5558",
+    color: "#D4627B",
     subcategories: ["Medical Devices", "Digital Health", "Neurotechnology", "Precision Medicine"],
   },
   {
     name: "Advanced Manufacturing",
-    color: "#19547b",
+    color: "#C47D2A",
     subcategories: ["3D Printing & Additive", "Smart Materials", "Quantum Technology", "Space Technology"],
   },
 ];
@@ -127,46 +135,46 @@ export const L3_TOPICS: Record<string, string[]> = {
 // ─── Spatial layout for each L2 subcategory ──────────────────────────────────
 // (cx, cy) = cluster centre in normalised [0,1] map coordinates
 const SUBCATEGORY_POSITIONS: Record<string, { cx: number; cy: number }> = {
-  // ── AI & ML (top-left) — near Semiconductors (the hardware that powers it) ──
-  "Natural Language Processing": { cx: 0.12, cy: 0.14 },
-  "Computer Vision":             { cx: 0.19, cy: 0.14 },
-  "Reinforcement Learning":      { cx: 0.12, cy: 0.21 },
-  "AI Hardware & Chips":         { cx: 0.19, cy: 0.21 },
-  // ── Semiconductors (top-centre) — bridges AI ↔ Telecom ──
-  "Processor Architecture":      { cx: 0.36, cy: 0.12 },
-  "Memory & Storage":            { cx: 0.43, cy: 0.12 },
-  "Advanced Packaging":          { cx: 0.36, cy: 0.19 },
-  "Photonics & Optics":          { cx: 0.43, cy: 0.19 },
-  // ── Telecommunications (top-right) — near Semiconductors & IoT ──
-  "5G & 6G Networks":            { cx: 0.62, cy: 0.12 },
-  "Network Security":            { cx: 0.69, cy: 0.12 },
-  "Satellite Communication":     { cx: 0.62, cy: 0.19 },
-  "IoT & Edge Computing":        { cx: 0.69, cy: 0.19 },
-  // ── Robotics & Automation (mid-left) — near AI & Manufacturing ──
-  "Industrial Automation":       { cx: 0.11, cy: 0.44 },
-  "Autonomous Vehicles":         { cx: 0.18, cy: 0.44 },
-  "Drone Technology":            { cx: 0.11, cy: 0.51 },
-  "Humanoid Robots":             { cx: 0.18, cy: 0.51 },
-  // ── Advanced Manufacturing (centre) — bridges Robotics ↔ Clean Energy ──
-  "3D Printing & Additive":      { cx: 0.37, cy: 0.42 },
-  "Smart Materials":             { cx: 0.44, cy: 0.42 },
-  "Quantum Technology":          { cx: 0.37, cy: 0.49 },
-  "Space Technology":            { cx: 0.44, cy: 0.49 },
-  // ── Clean Energy (mid-right) — near Telecom/IoT (smart grid) & Manufacturing ──
-  "Solar Energy":                { cx: 0.63, cy: 0.42 },
-  "Battery Technology":          { cx: 0.70, cy: 0.42 },
-  "Hydrogen & Fuel Cells":       { cx: 0.63, cy: 0.49 },
-  "Wind & Ocean Energy":         { cx: 0.70, cy: 0.49 },
-  // ── Biotechnology (bottom-left) — near Healthcare ──
-  "Gene Editing":                { cx: 0.14, cy: 0.76 },
-  "Drug Discovery":              { cx: 0.21, cy: 0.76 },
-  "Synthetic Biology":           { cx: 0.14, cy: 0.83 },
-  "Diagnostics & Imaging":       { cx: 0.21, cy: 0.83 },
-  // ── Healthcare Technology (bottom-centre) — bridges Biotech ↔ AI (digital health) ──
-  "Medical Devices":             { cx: 0.40, cy: 0.76 },
-  "Digital Health":              { cx: 0.47, cy: 0.76 },
-  "Neurotechnology":             { cx: 0.40, cy: 0.83 },
-  "Precision Medicine":          { cx: 0.47, cy: 0.83 },
+  // ── AI & ML (centre-left) — hub connecting Semiconductors, Robotics, Healthcare ──
+  "Natural Language Processing": { cx: 0.30, cy: 0.28 },
+  "Computer Vision":             { cx: 0.37, cy: 0.25 },
+  "Reinforcement Learning":      { cx: 0.27, cy: 0.35 },
+  "AI Hardware & Chips":         { cx: 0.35, cy: 0.33 },
+  // ── Semiconductors (upper-right) — near AI (powers it) & Telecom (enables it) ──
+  "Processor Architecture":      { cx: 0.55, cy: 0.18 },
+  "Memory & Storage":            { cx: 0.62, cy: 0.15 },
+  "Advanced Packaging":          { cx: 0.58, cy: 0.25 },
+  "Photonics & Optics":          { cx: 0.65, cy: 0.22 },
+  // ── Telecommunications (far right) — near Semiconductors, bridges to Clean Energy ──
+  "5G & 6G Networks":            { cx: 0.78, cy: 0.30 },
+  "Network Security":            { cx: 0.82, cy: 0.24 },
+  "Satellite Communication":     { cx: 0.75, cy: 0.37 },
+  "IoT & Edge Computing":        { cx: 0.80, cy: 0.38 },
+  // ── Robotics & Automation (left) — near AI & Advanced Manufacturing ──
+  "Industrial Automation":       { cx: 0.10, cy: 0.42 },
+  "Autonomous Vehicles":         { cx: 0.17, cy: 0.38 },
+  "Drone Technology":            { cx: 0.08, cy: 0.50 },
+  "Humanoid Robots":             { cx: 0.15, cy: 0.48 },
+  // ── Advanced Manufacturing (centre-bottom) — bridges Robotics ↔ Clean Energy ──
+  "3D Printing & Additive":      { cx: 0.35, cy: 0.55 },
+  "Smart Materials":             { cx: 0.42, cy: 0.52 },
+  "Quantum Technology":          { cx: 0.38, cy: 0.62 },
+  "Space Technology":            { cx: 0.45, cy: 0.58 },
+  // ── Clean Energy (right-centre) — near Telecom (smart grid) & Manufacturing ──
+  "Solar Energy":                { cx: 0.65, cy: 0.48 },
+  "Battery Technology":          { cx: 0.72, cy: 0.50 },
+  "Hydrogen & Fuel Cells":       { cx: 0.68, cy: 0.56 },
+  "Wind & Ocean Energy":         { cx: 0.75, cy: 0.55 },
+  // ── Biotechnology (lower-left) — near Healthcare, away from hardware domains ──
+  "Gene Editing":                { cx: 0.12, cy: 0.72 },
+  "Drug Discovery":              { cx: 0.20, cy: 0.70 },
+  "Synthetic Biology":           { cx: 0.10, cy: 0.80 },
+  "Diagnostics & Imaging":       { cx: 0.18, cy: 0.78 },
+  // ── Healthcare (lower-centre) — bridges Biotech ↔ AI (digital health leans toward AI) ──
+  "Medical Devices":             { cx: 0.32, cy: 0.75 },
+  "Digital Health":              { cx: 0.40, cy: 0.72 },
+  "Neurotechnology":             { cx: 0.35, cy: 0.82 },
+  "Precision Medicine":          { cx: 0.28, cy: 0.80 },
 };
 
 // ─── Per-category title/abstract content ─────────────────────────────────────
@@ -315,7 +323,7 @@ export function generateMockPatents(): Patent[] {
 
     for (let i = 0; i < count; i++) {
       const angle = rand() * 2 * Math.PI;
-      const r = Math.sqrt(rand()) * 0.09;          // wider spread for cluster overlap
+      const r = Math.sqrt(rand()) * 0.18;          // wider spread for cluster overlap
       // Concentrate more patents in 2024 to represent "last year" data
       const yearBias = rand();
       const year = yearBias > 0.35
