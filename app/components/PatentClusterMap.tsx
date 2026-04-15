@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import * as d3 from "d3";
 import type { Patent } from "@/app/lib/types";
-import { CATEGORY_COLORS } from "@/app/lib/mock-data";
+import { CATEGORY_COLORS, DOMAIN_HIERARCHY } from "@/app/lib/mock-data";
 
 export type { Patent };
 
@@ -58,10 +58,10 @@ export default function PatentClusterMap({
   showSearchHull,
 }: Props) {
   const [conceptQuery, setConceptQuery] = useState("");
+  const [showLegend, setShowLegend] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const minimapRef = useRef<SVGSVGElement>(null);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; patent: Patent } | null>(null);
   const transformRef = useRef<d3.ZoomTransform>(d3.zoomIdentity);
   const xScaleRef = useRef<d3.ScaleLinear<number, number>>(d3.scaleLinear());
@@ -194,8 +194,8 @@ export default function PatentClusterMap({
     const g = root.append("g");
     rootGRef.current = g;
 
-    const xScale = d3.scaleLinear().domain([0, 1]).range([40, W - 40]);
-    const yScale = d3.scaleLinear().domain([0, 1]).range([40, H - 40]);
+    const xScale = d3.scaleLinear().domain([-0.25, 1.25]).range([10, W - 10]);
+    const yScale = d3.scaleLinear().domain([-0.25, 1.25]).range([10, H - 10]);
     xScaleRef.current = xScale;
     yScaleRef.current = yScale;
 
@@ -236,7 +236,6 @@ export default function PatentClusterMap({
         g.attr("transform", event.transform);
         transformRef.current = event.transform;
         redrawDotsRef.current();
-        updateMinimap();
       });
     root.call(zoom);
 
@@ -266,48 +265,6 @@ export default function PatentClusterMap({
       setTooltip(null);
     });
 
-    // Mini-map
-    function updateMinimap() {
-      const mm = minimapRef.current;
-      if (!mm) return;
-      const MW = mm.clientWidth;
-      const MH = mm.clientHeight;
-      const mmRoot = d3.select(mm);
-      mmRoot.selectAll("*").remove();
-
-      const mmX = d3.scaleLinear().domain([0, 1]).range([4, MW - 4]);
-      const mmY = d3.scaleLinear().domain([0, 1]).range([4, MH - 4]);
-
-      mmRoot.selectAll("circle.mm-dot")
-        .data(patents)
-        .join("circle")
-        .attr("class", "mm-dot")
-        .attr("cx", (d) => mmX(d.x))
-        .attr("cy", (d) => mmY(d.y))
-        .attr("r", 1.2)
-        .attr("fill", (d) => CATEGORY_COLORS[d.category] ?? "#888")
-        .attr("fill-opacity", 0.7);
-
-      const t = transformRef.current;
-      const vx0 = (0 - t.x) / t.k;
-      const vy0 = (0 - t.y) / t.k;
-      const vx1 = (W - t.x) / t.k;
-      const vy1 = (H - t.y) / t.k;
-
-      const toMmX = (px: number) => mmX(xScale.invert(px));
-      const toMmY = (py: number) => mmY(yScale.invert(py));
-
-      mmRoot.append("rect")
-        .attr("x", toMmX(vx0)).attr("y", toMmY(vy0))
-        .attr("width", toMmX(vx1) - toMmX(vx0))
-        .attr("height", toMmY(vy1) - toMmY(vy0))
-        .attr("fill", "none")
-        .attr("stroke", "var(--accent-light)")
-        .attr("stroke-width", 1)
-        .attr("opacity", 0.7);
-    }
-
-    updateMinimap();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patents]);
 
@@ -321,27 +278,24 @@ export default function PatentClusterMap({
 
     contoursG.selectAll("*").remove();
 
-    for (const [cat, color] of Object.entries(CATEGORY_COLORS)) {
-      const catPatents = patentsByCategory.get(cat);
-      if (!catPatents || catPatents.length < 3) continue;
-      const density = d3.contourDensity<Patent>()
-        .x(d => xScale(d.x))
-        .y(d => yScale(d.y))
-        .size([W, H])
-        .bandwidth(40)
-        .thresholds(6)(catPatents);
-      contoursG.selectAll<SVGPathElement, d3.ContourMultiPolygon>(`path.topo-${cat.replace(/[^a-zA-Z0-9]/g, "-")}`)
-        .data(density)
-        .join("path")
-        .attr("d", d3.geoPath())
-        .attr("fill", color)
-        .attr("fill-opacity", (_, i) => (i + 1) * 0.015)
-        .attr("stroke", "#ffffff")
-        .attr("stroke-opacity", (_, i) => 0.03 + i * 0.015)
-        .attr("stroke-width", 0.4)
-        .attr("stroke-dasharray", "4 6")
-        .attr("stroke-linejoin", "round");
-    }
+    // Single contour wrapping all patents together
+    const allPatents = Array.from(patentsByCategory.values()).flat();
+    if (allPatents.length < 3) return;
+    const density = d3.contourDensity<Patent>()
+      .x(d => xScale(d.x))
+      .y(d => yScale(d.y))
+      .size([W, H])
+      .bandwidth(30)
+      .thresholds(6)(allPatents);
+    contoursG.selectAll<SVGPathElement, d3.ContourMultiPolygon>("path.topo")
+      .data(density)
+      .join("path")
+      .attr("d", d3.geoPath())
+      .attr("fill", "none")
+      .attr("stroke", "#e8e4de")
+      .attr("stroke-opacity", (_, i) => 0.35 + i * 0.08)
+      .attr("stroke-width", 1.5)
+      .attr("stroke-linejoin", "round");
   }, [patentsByCategory]);
 
   // ── Effect 2: Canvas dot rendering ──
@@ -406,19 +360,19 @@ export default function PatentClusterMap({
 
         // Radius (scaled by inverse zoom to keep screen size constant)
         let r: number;
-        if (isSel) r = 6;
-        else if (inCompare) r = 4.5;
-        else if (isConcept) r = 4;
-        else if (inRadius) r = 4;
-        else r = 2.8;
+        if (isSel) r = 12;
+        else if (inCompare) r = 9;
+        else if (isConcept) r = 8;
+        else if (inRadius) r = 8;
+        else r = 6.5;
         r = r / t.k;
 
         // Opacity
         let alpha: number;
-        if (isSel) alpha = 1;
-        else if (hasConceptMatches) alpha = isConcept ? 1 : 0.08;
-        else if (!selected) alpha = 0.85;
-        else alpha = (inRadius || inCompare) ? 0.9 : 0.15;
+        if (isSel) alpha = 0.9;
+        else if (hasConceptMatches) alpha = isConcept ? 0.8 : 0.06;
+        else if (!selected) alpha = 0.45;
+        else alpha = (inRadius || inCompare) ? 0.6 : 0.1;
 
         const rgb = CATEGORY_RGB[p.category] ?? [136, 136, 136];
         const cx = xScale(p.x);
@@ -655,13 +609,27 @@ export default function PatentClusterMap({
         </button>
       </div>
 
-      {/* Mini-map */}
-      <div
-        className="absolute top-12 right-3 rounded overflow-hidden"
-        style={{ width: 120, height: 80, background: "rgba(17,17,16,0.8)", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 1px 8px rgba(0,0,0,0.4)", zIndex: 15 }}
+      {/* Legend toggle */}
+      <button
+        onClick={() => setShowLegend(v => !v)}
+        className="absolute top-12 right-3 text-xs px-2 py-1 rounded font-medium"
+        style={{ background: "rgba(0,0,0,0.75)", border: "1px solid rgba(255,255,255,0.1)", color: "var(--muted)", zIndex: 15, backdropFilter: "blur(8px)" }}
       >
-        <svg ref={minimapRef} width={120} height={80} />
-      </div>
+        {showLegend ? "Hide legend" : "Legend"}
+      </button>
+      {showLegend && (
+        <div
+          className="absolute top-20 right-3 rounded flex flex-col gap-1 px-3 py-2.5"
+          style={{ background: "rgba(0,0,0,0.75)", border: "1px solid rgba(255,255,255,0.1)", zIndex: 15, backdropFilter: "blur(8px)" }}
+        >
+          {DOMAIN_HIERARCHY.map(d => (
+            <div key={d.name} className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: d.color }} />
+              <span style={{ color: "var(--muted)", fontSize: 11 }}>{d.name}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Compare badge */}
       {compareSet.size >= 1 && (

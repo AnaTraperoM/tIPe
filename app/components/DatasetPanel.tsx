@@ -18,7 +18,7 @@ const MAX_YEAR = 2024;
 export default function DatasetPanel({
   yearRange, onYearRange, activeCategories, onToggleCategories, onTopicSearch,
 }: Props) {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const pct = (v: number) => ((v - MIN_YEAR) / (MAX_YEAR - MIN_YEAR)) * 100;
 
   const handleFrom = (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -43,7 +43,7 @@ export default function DatasetPanel({
       {/* Toggle bar */}
       <button
         onClick={() => setExpanded(v => !v)}
-        className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold transition-colors"
+        className="w-full flex items-center justify-between px-4 py-2.5 text-sm font-semibold transition-colors"
         style={{ color: "var(--foreground)" }}
       >
         <span className="flex items-center gap-2">

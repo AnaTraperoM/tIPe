@@ -24,7 +24,7 @@ export default function Header({ onSearch, searching, resultCount, mock, dataSou
       style={{ background: "#000000", borderBottom: "1px solid rgba(255,255,255,0.1)", position: "relative", zIndex: 10 }}
     >
       <div className="flex items-center">
-        <span className="text-sm font-bold tracking-tight" style={{ color: "var(--foreground)" }}>
+        <span className="text-base font-bold tracking-tight" style={{ color: "var(--foreground)" }}>
           t<span style={{ color: "var(--foreground)" }}>IP</span>e
         </span>
       </div>
@@ -43,7 +43,7 @@ export default function Header({ onSearch, searching, resultCount, mock, dataSou
         <input
           type="text"
           placeholder="Search patents, keywords, inventors…"
-          className="bg-transparent text-xs outline-none w-full"
+          className="bg-transparent text-sm outline-none w-full"
           style={{ color: "var(--foreground)" }}
           value={value}
           onChange={(e) => setValue(e.target.value)}
@@ -51,8 +51,7 @@ export default function Header({ onSearch, searching, resultCount, mock, dataSou
         />
       </div>
 
-      <div className="flex items-center gap-3 text-[11px]" style={{ color: "var(--muted)" }}>
-        <span>{resultCount} patents</span>
+      <div className="flex items-center gap-3 text-xs" style={{ color: "var(--muted)" }}>
         <span>2000–2024</span>
         <span>Google Patents</span>
       </div>
