@@ -194,8 +194,8 @@ export default function PatentClusterMap({
     const g = root.append("g");
     rootGRef.current = g;
 
-    const xScale = d3.scaleLinear().domain([-0.25, 1.25]).range([10, W - 10]);
-    const yScale = d3.scaleLinear().domain([-0.25, 1.25]).range([10, H - 10]);
+    const xScale = d3.scaleLinear().domain([-0.15, 1.15]).range([10, W - 10]);
+    const yScale = d3.scaleLinear().domain([-0.15, 1.15]).range([10, H - 10]);
     xScaleRef.current = xScale;
     yScaleRef.current = yScale;
 
@@ -265,6 +265,12 @@ export default function PatentClusterMap({
       setTooltip(null);
     });
 
+    return () => {
+      root.on("mousemove.hittest", null);
+      root.on("click.hittest", null);
+      root.on("mouseleave.hittest", null);
+      root.on(".zoom", null);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patents]);
 
@@ -305,10 +311,26 @@ export default function PatentClusterMap({
     const ctx = canvas.getContext("2d")!;
     const dpr = window.devicePixelRatio || 1;
 
+    // Pre-compute per-patent pixel coords (avoids xScale/yScale calls per frame)
+    const xScale = xScaleRef.current;
+    const yScale = yScaleRef.current;
+    const pxCoords = new Float32Array(patents.length * 2);
+    for (let i = 0; i < patents.length; i++) {
+      pxCoords[i * 2] = xScale(patents[i].x);
+      pxCoords[i * 2 + 1] = yScale(patents[i].y);
+    }
+
+    // Pre-compute RGB arrays to avoid per-frame object lookups + string construction
+    const rgbR = new Uint8Array(patents.length);
+    const rgbG = new Uint8Array(patents.length);
+    const rgbB = new Uint8Array(patents.length);
+    for (let i = 0; i < patents.length; i++) {
+      const rgb = CATEGORY_RGB[patents[i].category] ?? [136, 136, 136];
+      rgbR[i] = rgb[0]; rgbG[i] = rgb[1]; rgbB[i] = rgb[2];
+    }
+
     function drawDots() {
       const { W, H } = dimsRef.current;
-      const xScale = xScaleRef.current;
-      const yScale = yScaleRef.current;
       const t = transformRef.current;
 
       // Clear entire canvas
@@ -321,12 +343,12 @@ export default function PatentClusterMap({
       ctx.scale(t.k, t.k);
 
       const hasConceptMatches = conceptMatches && conceptMatches.size > 0;
-      const simRadPx = xScale(similarityRadius) - xScale(0);
 
       // Draw similarity radius ring if a patent is selected
       if (selected) {
-        const cx = xScale(selected.x);
-        const cy = yScale(selected.y);
+        const simRadPx = xScaleRef.current(similarityRadius) - xScaleRef.current(0);
+        const cx = xScaleRef.current(selected.x);
+        const cy = yScaleRef.current(selected.y);
         const rgb = CATEGORY_RGB[selected.category] ?? [124, 106, 247];
 
         ctx.beginPath();
@@ -340,12 +362,30 @@ export default function PatentClusterMap({
         ctx.setLineDash([]);
       }
 
+      // Viewport culling bounds (in data-space px coords)
+      const vx0 = -t.x / t.k;
+      const vy0 = -t.y / t.k;
+      const vx1 = (W - t.x) / t.k;
+      const vy1 = (H - t.y) / t.k;
+      const margin = 20 / t.k; // include dots just outside viewport
+
       // Pre-compute selected coords for distance checks
       const selX = selected ? selected.x : 0;
       const selY = selected ? selected.y : 0;
+      const simRadSq = similarityRadius * similarityRadius;
 
-      // Draw all dots with subtle glow halos
+      const baseR = 6.5 / t.k;
+      const defaultBlur = 6 / t.k;
+
+      // Draw all dots — batched, no save/restore per dot
+      ctx.shadowBlur = 0;
       for (let i = 0; i < patents.length; i++) {
+        const cx = pxCoords[i * 2];
+        const cy = pxCoords[i * 2 + 1];
+
+        // Viewport culling — skip offscreen dots
+        if (cx < vx0 - margin || cx > vx1 + margin || cy < vy0 - margin || cy > vy1 + margin) continue;
+
         const p = patents[i];
         const isSel = selected?.id === p.id;
         const inCompare = compareSet.has(p.id);
@@ -355,17 +395,15 @@ export default function PatentClusterMap({
         if (selected && !isSel) {
           const ddx = p.x - selX;
           const ddy = p.y - selY;
-          inRadius = Math.sqrt(ddx * ddx + ddy * ddy) < similarityRadius;
+          inRadius = (ddx * ddx + ddy * ddy) < simRadSq; // avoid sqrt
         }
 
-        // Radius (scaled by inverse zoom to keep screen size constant)
+        // Radius
         let r: number;
-        if (isSel) r = 12;
-        else if (inCompare) r = 9;
-        else if (isConcept) r = 8;
-        else if (inRadius) r = 8;
-        else r = 6.5;
-        r = r / t.k;
+        if (isSel) r = 12 / t.k;
+        else if (inCompare) r = 9 / t.k;
+        else if (isConcept || inRadius) r = 8 / t.k;
+        else r = baseR;
 
         // Opacity
         let alpha: number;
@@ -374,22 +412,26 @@ export default function PatentClusterMap({
         else if (!selected) alpha = 0.45;
         else alpha = (inRadius || inCompare) ? 0.6 : 0.1;
 
-        const rgb = CATEGORY_RGB[p.category] ?? [136, 136, 136];
-        const cx = xScale(p.x);
-        const cy = yScale(p.y);
+        const rr = rgbR[i], gg = rgbG[i], bb = rgbB[i];
 
-        // Subtle glow halo behind every dot
-        const glowAlpha = isSel ? 0.5 : (alpha * 0.25);
-        ctx.save();
-        ctx.shadowColor = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${glowAlpha})`;
-        ctx.shadowBlur = isSel ? 14 / t.k : 6 / t.k;
+        // Glow — set shadow directly instead of save/restore
+        if (isSel) {
+          ctx.shadowColor = `rgba(${rr},${gg},${bb},0.5)`;
+          ctx.shadowBlur = 14 / t.k;
+        } else if (alpha > 0.1) {
+          ctx.shadowColor = `rgba(${rr},${gg},${bb},${alpha * 0.25})`;
+          ctx.shadowBlur = defaultBlur;
+        }
+
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${alpha})`;
+        ctx.fillStyle = `rgba(${rr},${gg},${bb},${alpha})`;
         ctx.fill();
-        ctx.restore();
 
-        // Stroke rings
+        // Clear shadow for next dot
+        if (isSel || alpha > 0.1) ctx.shadowBlur = 0;
+
+        // Stroke rings for special dots only
         if (isSel || inCompare) {
           ctx.beginPath();
           ctx.arc(cx, cy, r + 0.5 / t.k, 0, Math.PI * 2);
