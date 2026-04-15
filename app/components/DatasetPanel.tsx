@@ -38,7 +38,7 @@ export default function DatasetPanel({
   return (
     <div
       className="flex-shrink-0"
-      style={{ background: "var(--surface)", borderTop: "1px solid var(--border)" }}
+      style={{ background: "#000000", borderTop: "1px solid var(--border)", position: "relative", zIndex: 10 }}
     >
       {/* Toggle bar */}
       <button
