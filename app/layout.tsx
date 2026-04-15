@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { DM_Sans, DM_Mono } from "next/font/google";
+import { Inter, DM_Mono } from "next/font/google";
 import "./globals.css";
 
-const dmSans = DM_Sans({
+const inter = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
-  weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
 });
 
 const dmMono = DM_Mono({
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${dmSans.variable} ${dmMono.variable} h-full`}>
+    <html lang="en" className={`${inter.variable} ${dmMono.variable} h-full`}>
       <body className="h-full flex flex-col antialiased" style={{ background: "var(--background)", color: "var(--foreground)" }}>
         {children}
       </body>
