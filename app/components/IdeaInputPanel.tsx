@@ -46,7 +46,9 @@ export default function IdeaInputPanel({ onSubmit, onClose, onMainMenu }: Props)
 
   const canSubmit = tab === "text"
     ? textContent.trim().length > 0
-    : brief.trim().length > 0 && !!file;
+    : tab === "visual"
+      ? brief.trim().length > 0 && !!file
+      : !!file;
 
   const handleCheckLandscape = () => {
     if (!canSubmit) return;
@@ -57,7 +59,7 @@ export default function IdeaInputPanel({ onSubmit, onClose, onMainMenu }: Props)
     onSubmit({
       type: tab,
       content: tab === "text" ? textContent : file?.name ?? "",
-      brief: tab === "text" ? textContent.slice(0, 200) : brief,
+      brief: tab === "text" ? textContent.slice(0, 200) : tab === "visual" ? brief : (file?.name ?? ""),
       file: file ?? undefined,
     });
   };
@@ -308,8 +310,9 @@ export default function IdeaInputPanel({ onSubmit, onClose, onMainMenu }: Props)
               </div>
             )}
 
-            {/* Brief description — only for document/visual uploads */}
-            {tab !== "text" && (
+
+            {/* Brief description — only for visual/picture uploads */}
+            {tab === "visual" && (
               <div>
                 <label
                   className="text-sm font-medium block mb-1.5"
