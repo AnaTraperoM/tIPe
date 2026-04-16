@@ -768,8 +768,8 @@ Respond with valid JSON only (no markdown fences). Be thorough and specific:
     ]
   },
   "features": [
-    { "type": "Technical Domain", "description": "<specific domain>", "keywords": ["<kw1>", "<kw2>", "<kw3>"] },
-    { "type": "Core Innovation", "description": "<Describe what makes this idea DIFFERENT from the closest existing patents. Do NOT just restate the user's description. Instead, identify the novel element — the specific technical feature, method, or combination that distinguishes it from prior art. Reference at least one existing patent to contrast against.>", "keywords": ["<kw1>", "<kw2>", "<kw3>"] }
+    { "type": "Technical Domain", "description": "<specific domain>" },
+    { "type": "Core Innovation", "description": "<Describe what makes this idea DIFFERENT from the closest existing patents. Do NOT just restate the user's description. Instead, identify the novel element — the specific technical feature, method, or combination that distinguishes it from prior art. Reference at least one existing patent to contrast against.>" }
   ],
   "landscape": {
     "totalAnalyzed": <number>,
@@ -1006,8 +1006,8 @@ function buildLocalFTOReport(brief: string, content: string, allPatents: Patent[
       suggestedAngles: suggestedAngles.slice(0, 3),
     },
     features: [
-      { type: "Technical Domain", description: category, keywords: keywords.slice(0, 4) },
-      { type: "Core Innovation", description: coreInnovation, keywords: uniqueToIdea.length > 0 ? uniqueToIdea.slice(0, 4) : keywords.slice(0, 4) },
+      { type: "Technical Domain", description: category },
+      { type: "Core Innovation", description: coreInnovation },
     ],
     landscape: {
       totalAnalyzed: matched.length,

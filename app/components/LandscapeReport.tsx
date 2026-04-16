@@ -221,12 +221,6 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
                     >
                       Description
                     </th>
-                    <th
-                      className="text-left py-3 px-4 font-semibold uppercase tracking-wider"
-                      style={{ color: "var(--muted)", width: 180 }}
-                    >
-                      Keywords
-                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -246,23 +240,6 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
                         style={{ color: "var(--muted)" }}
                       >
                         {f.description}
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex flex-wrap gap-1">
-                          {f.keywords.map((kw) => (
-                            <span
-                              key={kw}
-                              className="px-1.5 py-0.5 rounded"
-                              style={{
-                                background: "var(--surface-2)",
-                                color: "var(--accent-light)",
-                                fontSize: 10,
-                              }}
-                            >
-                              {kw}
-                            </span>
-                          ))}
-                        </div>
                       </td>
                     </tr>
                   ))}

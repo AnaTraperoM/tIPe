@@ -111,7 +111,6 @@ export interface HistoryEntry {
 export interface FTOFeature {
   type: string;
   description: string;
-  keywords: string[];
 }
 
 export interface FTOClaim {

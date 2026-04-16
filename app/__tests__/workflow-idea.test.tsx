@@ -225,8 +225,8 @@ describe("LandscapeReport", () => {
       suggestedAngles: ["File on the mesh fabrication method", "Claim the thermal response mechanism"],
     },
     features: [
-      { type: "Technical Domain", description: "Solid-state battery technology", keywords: ["solid-state", "polymer"] },
-      { type: "Core Innovation", description: "Polymer mesh separator", keywords: ["mesh", "separator"] },
+      { type: "Technical Domain", description: "Solid-state battery technology" },
+      { type: "Core Innovation", description: "Polymer mesh separator" },
     ],
     landscape: {
       totalAnalyzed: 20,
