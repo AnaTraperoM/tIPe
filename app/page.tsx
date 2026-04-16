@@ -428,7 +428,7 @@ export default function Home() {
   }, [showError, addHistory, uploadRadius]);
 
   // ── FTO Analysis ──
-  const handleFTOSubmit = useCallback(async (data: { type: string; content: string; brief: string; file?: File }) => {
+  const handleFTOSubmit = useCallback(async (data: { type: string; content: string; brief: string; file?: File; patentCount: number }) => {
     setFtoLoading(true);
     setFtoReport(null);
     setFtoIdeaBrief(data.brief);
@@ -466,7 +466,7 @@ export default function Home() {
       const res = await fetch("/api/ai/fto-analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ brief: data.brief, content, patentCount: 20 }),
+        body: JSON.stringify({ brief: data.brief, content, patentCount: data.patentCount }),
       });
       if (!res.ok) throw new Error("FTO analysis failed");
       const report: FTOReport = await res.json();
