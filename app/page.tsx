@@ -10,7 +10,7 @@ import LandingOverlay from "./components/LandingOverlay";
 import IdeaInputPanel from "./components/IdeaInputPanel";
 import AnalysisProgress from "./components/AnalysisProgress";
 import LandscapeReport from "./components/LandscapeReport";
-import PlugAndCreate from "./components/PlugAndCreate";
+// PlugAndCreate is now integrated into Sidebar
 import type {
   Patent,
   TranslationResult,
@@ -90,10 +90,10 @@ export default function Home() {
   const [conceptLoading, setConceptLoading] = useState(false);
 
   // Sidebar tab (lifted so page can switch it)
-  const [sidebarTab, setSidebarTab] = useState<"patent" | "upload" | "compare" | "history">("patent");
+  const [sidebarTab, setSidebarTab] = useState<"patent" | "compare" | "plug-create">("patent");
 
   // Workflow state
-  const [workflow, setWorkflow] = useState<"landing" | "idea" | "explore" | "plug-create">("landing");
+  const [workflow, setWorkflow] = useState<"landing" | "idea" | "explore">("landing");
   const [ftoReport, setFtoReport] = useState<FTOReport | null>(null);
   const [ftoLoading, setFtoLoading] = useState(false);
   const [ftoProgress, setFtoProgress] = useState<FTOProgress[]>([]);
@@ -566,8 +566,7 @@ export default function Home() {
   const showIdeaPanel = workflow === "idea" && !ftoLoading && !ftoReport;
   const showProgressPanel = workflow === "idea" && ftoLoading;
   const showReportPanel = workflow === "idea" && ftoReport && !ftoLoading;
-  const showPlugCreatePanel = workflow === "plug-create";
-  const showLeftPanel = showIdeaPanel || showProgressPanel || showReportPanel || showPlugCreatePanel;
+  const showLeftPanel = showIdeaPanel || showProgressPanel || showReportPanel;
 
   return (
     <div className="flex flex-col h-full">
@@ -597,20 +596,6 @@ export default function Home() {
                 onViewOnMap={() => setWorkflow("explore")}
               />
             )}
-            {showPlugCreatePanel && (
-              <PlugAndCreate
-                patents={patents}
-                selectedPatents={plugCreatePatents}
-                onTogglePatent={handlePlugCreateToggle}
-                onGenerate={handlePlugCreateGenerate}
-                onCheckLandscape={handlePlugCreateCheckLandscape}
-                result={plugCreateResult}
-                loading={plugCreateLoading}
-                onClose={() => setWorkflow("explore")}
-                onMainMenu={handleGoToMainMenu}
-                onSearch={handlePlugCreateSearch}
-              />
-            )}
           </div>
         )}
 
@@ -621,25 +606,12 @@ export default function Home() {
             onClose={handleCloseSidebar}
             selected={selected}
             onClear={handleClearSelected}
-            onUpload={handleUpload}
-            onAnalyzeIdea={handleAnalyzeIdea}
-            uploadRadius={uploadRadius}
-            onUploadRadiusChange={setUploadRadius}
             translation={translation}
             translationLoading={translationLoading}
             onTranslate={handleTranslate}
-            uploadResult={uploadResult}
-            uploadLoading={uploadLoading}
             compareCount={compareSet.size}
             onOpenCompare={handleOpenCompare}
             onSelectPatent={handleSelectPatent}
-            sessionHistory={sessionHistory}
-            onClearHistory={handleClearHistory}
-            onResetSelection={handleResetSelection}
-            onResetCompare={handleResetCompare}
-            onResetFilters={handleResetFilters}
-            onResetUpload={handleResetUpload}
-            onResetAll={handleResetAll}
             tab={sidebarTab}
             onTabChange={setSidebarTab}
             groupSelection={groupSelection}
@@ -648,10 +620,15 @@ export default function Home() {
             onGroupSummarize={handleGroupSummarizeNoArgs}
             onGroupClose={handleGroupClose}
             queryInterpretation={queryInterpretation}
-            onCompareMode={() => { setDrawerOpen(true); setSidebarTab("compare"); }}
-            onPlugCreate={() => { setWorkflow("plug-create"); setPlugCreatePatents(new Map()); setPlugCreateResult(null); }}
             onMainMenu={handleGoToMainMenu}
             allPatents={patents}
+            plugCreatePatents={plugCreatePatents}
+            onTogglePlugPatent={handlePlugCreateToggle}
+            onPlugGenerate={handlePlugCreateGenerate}
+            onPlugCheckLandscape={handlePlugCreateCheckLandscape}
+            plugCreateResult={plugCreateResult}
+            plugCreateLoading={plugCreateLoading}
+            onPlugSearch={handlePlugCreateSearch}
           />
         )}
 
@@ -659,10 +636,10 @@ export default function Home() {
           <div className="flex-1 overflow-hidden relative">
             <PatentClusterMap
               patents={visiblePatents}
-              onSelect={workflow === "plug-create" ? (p: Patent | null) => { if (p) handlePlugCreateToggle(p); } : handleSelectPatent}
+              onSelect={sidebarTab === "plug-create" ? (p: Patent | null) => { if (p) handlePlugCreateToggle(p); } : handleSelectPatent}
               selected={selected}
               uploadedPoint={uploadedPoint}
-              compareSet={workflow === "plug-create" ? new Set(plugCreatePatents.keys()) : compareSetIds}
+              compareSet={sidebarTab === "plug-create" ? new Set(plugCreatePatents.keys()) : compareSetIds}
               onToggleCompare={handleToggleCompare}
               searching={searching || conceptLoading}
               drawMode={drawMode}

@@ -4,7 +4,7 @@ import { Lightbulb, Radar } from "lucide-react";
 import Logo from "./Logo";
 
 interface Props {
-  workflow: "landing" | "idea" | "explore" | "plug-create";
+  workflow: "landing" | "idea" | "explore";
   onIdeaClick: () => void;
   onExploreClick: () => void;
 }
@@ -39,9 +39,9 @@ export default function Header({ workflow, onIdeaClick, onExploreClick }: Props)
           onClick={onExploreClick}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           style={{
-            background: workflow === "explore" || workflow === "plug-create" ? "var(--surface-2)" : "transparent",
-            color: workflow === "explore" || workflow === "plug-create" ? "var(--foreground)" : "var(--muted)",
-            border: workflow === "explore" || workflow === "plug-create" ? "1px solid var(--border)" : "1px solid transparent",
+            background: workflow === "explore" ? "var(--surface-2)" : "transparent",
+            color: workflow === "explore" ? "var(--foreground)" : "var(--muted)",
+            border: workflow === "explore" ? "1px solid var(--border)" : "1px solid transparent",
           }}
         >
           <Radar size={16} strokeWidth={1.5} />

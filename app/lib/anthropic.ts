@@ -44,6 +44,32 @@ function findMatchingPatents(keywords: string[], allPatents: Patent[], limit: nu
   return scored.filter(s => s.score > 0).sort((a, b) => b.score - a.score).slice(0, limit).map(s => s.patent);
 }
 
+/** Weighted variant: primary keywords (from the user's text) score 3x more than
+ *  secondary keywords (from Claude's semantic expansion). This ensures exact
+ *  matches still rank highest while the expanded terms cast a wider net. */
+function findMatchingPatentsWeighted(
+  primary: string[],
+  secondary: string[],
+  allPatents: Patent[],
+  limit: number,
+): Patent[] {
+  const scored = allPatents.map(p => {
+    const titleLower = p.title.toLowerCase();
+    const haystack = `${titleLower} ${(p.abstract ?? "").toLowerCase()} ${p.category.toLowerCase()}`;
+    let score = 0;
+    for (const kw of primary) {
+      if (titleLower.includes(kw)) score += 6;   // primary + title
+      else if (haystack.includes(kw)) score += 3; // primary + abstract/category
+    }
+    for (const kw of secondary) {
+      if (titleLower.includes(kw)) score += 2;   // secondary + title
+      else if (haystack.includes(kw)) score += 1; // secondary + abstract/category
+    }
+    return { patent: p, score };
+  });
+  return scored.filter(s => s.score > 0).sort((a, b) => b.score - a.score).slice(0, limit).map(s => s.patent);
+}
+
 // ─── Helper: guess category from text ───────────────────────────────────────
 function guessCategory(text: string, allPatents: Patent[]): string {
   const lower = text.toLowerCase();
@@ -70,6 +96,78 @@ function guessCategory(text: string, allPatents: Patent[]): string {
 
   const best = Object.entries(categoryScores).sort((a, b) => b[1] - a[1])[0];
   return best ? best[0] : categories[0] ?? "Other";
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SEMANTIC KEYWORD EXPANSION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/** Use Claude Haiku to expand an idea into a comprehensive set of search terms.
+ *  Returns both the original extracted keywords (primary) and Claude-generated
+ *  expansion terms (secondary) so callers can weight them differently. */
+export async function expandIdeaTerms(
+  ideaText: string,
+  availableCategories: string[],
+): Promise<{ primary: string[]; secondary: string[]; suggestedCategories: string[] }> {
+  const primary = extractKeywords(ideaText);
+  const localCategories = availableCategories.filter(cat => {
+    const catLower = cat.toLowerCase();
+    return primary.some(kw => catLower.includes(kw));
+  }).slice(0, 6);
+
+  const fallback = { primary, secondary: [] as string[], suggestedCategories: localCategories };
+
+  if (!isAnthropicConfigured()) return fallback;
+
+  const prompt = `You are a patent search expert. Given an innovation idea, generate a COMPREHENSIVE list of search terms that would find ALL semantically related patents — not just exact matches, but synonyms, related techniques, component technologies, and alternative approaches to the same problem.
+
+Think about:
+- Direct synonyms and alternative phrasings
+- Component technologies and sub-systems
+- Adjacent fields that use similar techniques
+- Problem-domain keywords (what problem does this solve?)
+- Implementation-level technical terms
+- Industry-standard terminology for these concepts
+
+Idea:
+"${ideaText.slice(0, 3000)}"
+
+Available technology categories:
+${availableCategories.map(c => `- ${c}`).join("\n")}
+
+Respond with valid JSON only (no markdown fences):
+{
+  "keywords": ["<25-40 search terms — mix of specific technical terms, broader concepts, synonyms, and related techniques>"],
+  "suggestedCategories": ["<1-6 most relevant categories from the list>"]
+}`;
+
+  try {
+    const message = await getClient().messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 600,
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const text = message.content[0].type === "text" ? message.content[0].text : "";
+    const parsed = parseJSON(text, null);
+
+    if (parsed && typeof parsed === "object") {
+      const p = parsed as Record<string, unknown>;
+      const expanded = ((p.keywords as string[]) ?? []).map(k => k.toLowerCase());
+      // Remove duplicates with primary keywords
+      const primarySet = new Set(primary);
+      const secondary = [...new Set(expanded)].filter(k => !primarySet.has(k));
+      return {
+        primary,
+        secondary,
+        suggestedCategories: (p.suggestedCategories as string[]) ?? localCategories,
+      };
+    }
+  } catch (err) {
+    console.error("[expandIdeaTerms] Haiku expansion failed, using local keywords:", err);
+  }
+
+  return fallback;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -272,12 +370,14 @@ export async function analyzeUploadedDocument(
     return buildLocalUploadAnalysis(text, allPatents, radius);
   }
 
-  // Pre-filter patents by relevance to the submitted text
-  const docKeywords = extractKeywords(text);
-  const relevantForUpload = findMatchingPatents(docKeywords, allPatents, 80);
+  // Semantic expansion: use Haiku to generate comprehensive search terms before matching
+  const availableCategories = [...new Set(allPatents.map(p => p.category))];
+  const { primary, secondary, suggestedCategories } = await expandIdeaTerms(text, availableCategories);
+  const relevantForUpload = findMatchingPatentsWeighted(primary, secondary, allPatents, 80);
+
   // Pad with category matches if not enough keyword hits
   if (relevantForUpload.length < 40) {
-    const cat = guessCategory(text, allPatents);
+    const cat = suggestedCategories[0] ?? guessCategory(text, allPatents);
     const catPatents = allPatents.filter(p => p.category === cat && !relevantForUpload.some(r => r.id === p.id));
     relevantForUpload.push(...catPatents.slice(0, 40 - relevantForUpload.length));
   }
@@ -526,36 +626,41 @@ export async function conceptSearch(
   availableCategories: string[],
 ): Promise<{ suggestedCategories: string[]; keywords: string[]; explanation: string }> {
   const keywords = extractKeywords(concept);
+  const conceptWords = concept.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+  const allLocalKeywords = [...new Set([...keywords, ...conceptWords])];
+
   const suggestedCategories = availableCategories.filter(cat => {
     const catLower = cat.toLowerCase();
-    return keywords.some(kw => catLower.includes(kw)) || concept.toLowerCase().split(/\s+/).some(w => w.length > 2 && catLower.includes(w));
-  }).slice(0, 4);
+    return allLocalKeywords.some(kw => catLower.includes(kw));
+  }).slice(0, 6);
 
   const fallback = {
     suggestedCategories,
-    keywords: keywords.length > 0 ? keywords : concept.split(/\s+/).filter(w => w.length > 3),
+    keywords: allLocalKeywords.length > 0 ? allLocalKeywords : concept.split(/\s+/).filter(w => w.length > 3),
     explanation: `Searching for patents related to: ${concept}`,
   };
 
   if (!isAnthropicConfigured()) return fallback;
 
-  const prompt = `You are a patent landscape analyst. A user is looking for patents related to this concept:
+  const prompt = `You are a patent landscape analyst. A user wants to find semantically similar patents to this concept:
 
 "${concept}"
 
 Available technology categories in our database:
 ${availableCategories.map(c => `- ${c}`).join("\n")}
 
+Generate a COMPREHENSIVE set of search terms that would find ALL semantically related patents — not just exact keyword matches but also synonyms, related techniques, adjacent technologies, component technologies, and alternative approaches to the same problem.
+
 Respond with valid JSON only (no markdown fences):
 {
-  "suggestedCategories": ["<1-4 most relevant category names from the list above>"],
-  "keywords": ["<5-8 specific technical keywords to search for in patent titles and abstracts>"],
-  "explanation": "<1 sentence explaining what kinds of patents the user will find>"
+  "suggestedCategories": ["<1-6 most relevant category names from the list above>"],
+  "keywords": ["<12-20 specific technical keywords, synonyms, and related terms to search in patent titles and abstracts — include both specific technical terms AND broader conceptual terms>"],
+  "explanation": "<1 sentence explaining the semantic cluster of patents the user will find>"
 }`;
 
   const message = await getClient().messages.create({
-    model: "claude-opus-4-6",
-    max_tokens: 400,
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 600,
     messages: [{ role: "user", content: prompt }],
   });
 
@@ -587,11 +692,23 @@ export async function analyzeFTO(
     return buildLocalFTOReport(brief, content, allPatents, patentCount);
   }
 
-  // Pre-filter patents by relevance to the idea (keyword matching) instead of just taking first N
-  const ideaKeywords = extractKeywords(`${brief} ${content}`);
-  const relevantPatents = findMatchingPatents(ideaKeywords, allPatents, Math.min(patentCount * 3, 120));
-  // If not enough keyword matches, pad with patents from the guessed category
-  const category = guessCategory(`${brief} ${content}`, allPatents);
+  // Semantic expansion: use Haiku to generate comprehensive search terms before matching
+  const availableCategories = [...new Set(allPatents.map(p => p.category))];
+  const { primary, secondary, suggestedCategories } = await expandIdeaTerms(
+    `${brief} ${content}`,
+    availableCategories,
+  );
+
+  // Weighted matching: primary keywords (from user's text) rank higher than expanded terms
+  const relevantPatents = findMatchingPatentsWeighted(
+    primary,
+    secondary,
+    allPatents,
+    Math.min(patentCount * 3, 120),
+  );
+
+  // Pad with patents from the best-fit category if not enough matches
+  const category = suggestedCategories[0] ?? guessCategory(`${brief} ${content}`, allPatents);
   if (relevantPatents.length < patentCount * 2) {
     const catPatents = allPatents.filter(p => p.category === category && !relevantPatents.some(r => r.id === p.id));
     relevantPatents.push(...catPatents.slice(0, patentCount * 2 - relevantPatents.length));

@@ -22,9 +22,9 @@ function createBigQueryClient() {
 // Maps 4-char IPC section codes to the 32 subcategories used in tIPe
 const IPC_TO_CATEGORY: Record<string, string> = {
   // AI & Machine Learning
-  G06N: "Machine Learning",
+  G06N: "Natural Language Processing",
   G06F: "Natural Language Processing",
-  G10L: "Speech Recognition",
+  G10L: "Natural Language Processing",
   G06V: "Computer Vision",
   G06T: "Computer Vision",
   // Biotechnology
@@ -48,25 +48,25 @@ const IPC_TO_CATEGORY: Record<string, string> = {
   B64C: "Drone Technology",
   B64U: "Drone Technology",
   // Telecommunications
-  H04L: "Network Architecture",
-  H04W: "5G & Beyond",
-  H04B: "Satellite Communications",
+  H04L: "Network Security",
+  H04W: "5G & 6G Networks",
+  H04B: "Satellite Communication",
   H04N: "IoT & Edge Computing",
   // Clean Energy
-  H02S: "Solar Technology",
+  H02S: "Solar Energy",
   H01M: "Battery Technology",
-  F03D: "Wind Energy",
+  F03D: "Wind & Ocean Energy",
   C25B: "Hydrogen & Fuel Cells",
-  H02J: "Energy Storage Systems",
+  H02J: "Battery Technology",
   // Healthcare Technology
   A61B: "Medical Devices",
-  G16H: "Digital Health Platforms",
-  A61N: "Surgical Robotics",
+  G16H: "Digital Health",
+  A61N: "Medical Devices",
   // Advanced Manufacturing
   B33Y: "3D Printing & Additive",
   B22F: "3D Printing & Additive",
   G01N: "Smart Materials",
-  B29C: "Advanced Manufacturing",
+  B29C: "Smart Materials",
 };
 
 function ipcToCategory(ipc: string): string {
