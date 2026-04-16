@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Upload, FileText, Search, X, ChevronRight, Layers } from "lucide-react";
+import { Upload, FileText, Search, X, ChevronRight, Layers, Clock, Building2, ScrollText, Sparkles } from "lucide-react";
 import type { Patent, TranslationResult, UploadAnalysisResult, HistoryEntry, GroupSummaryResult, QueryInterpretation } from "@/app/lib/types";
+import { findSimilarPatents } from "@/app/lib/patent-enrich";
 import { CATEGORY_COLORS } from "@/app/lib/mock-data";
 import UploadAnalysis from "./UploadAnalysis";
 
@@ -41,6 +42,7 @@ interface Props {
   onCompareMode?: () => void;
   onPlugCreate?: () => void;
   onMainMenu?: () => void;
+  allPatents?: Patent[];
 }
 
 type Tab = "patent" | "upload" | "compare" | "history";
@@ -80,6 +82,7 @@ export default function Sidebar({
   onCompareMode,
   onPlugCreate,
   onMainMenu,
+  allPatents = [],
 }: Props) {
   const [dragOver, setDragOver] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<string | null>(null);
@@ -96,6 +99,17 @@ export default function Sidebar({
     const mn = Math.min(...years), mx = Math.max(...years);
     return mn === mx ? String(mn) : `${mn}–${mx}`;
   }, [groupSelection]);
+
+  const similarPatents = useMemo(() => {
+    if (!selected || allPatents.length === 0) return [];
+    return findSimilarPatents(selected, allPatents, 6);
+  }, [selected, allPatents]);
+
+  const STATUS_STYLES: Record<string, { bg: string; color: string; label: string }> = {
+    active:  { bg: "rgba(52,211,153,0.15)", color: "#34d399", label: "Active" },
+    pending: { bg: "rgba(251,191,36,0.15)", color: "#fbbf24", label: "Pending" },
+    expired: { bg: "rgba(156,163,175,0.15)", color: "#9ca3af", label: "Expired" },
+  };
 
   function relativeTime(date: Date): string {
     const s = Math.floor((Date.now() - date.getTime()) / 1000);
@@ -150,22 +164,22 @@ export default function Sidebar({
           background: "rgba(0,0,0,0.4)",
           opacity: open ? 1 : 0,
           pointerEvents: open ? "auto" : "none",
-          backdropFilter: "blur(1px)",
+          backdropFilter: "blur(4px)",
         }}
         onClick={onClose}
       />
 
       {/* Drawer */}
       <aside
-        className="fixed top-14 left-0 flex flex-col z-40"
+        className="fixed top-16 left-0 flex flex-col z-40"
         style={{
-          width: 360,
-          height: "calc(100vh - 56px)",
+          width: 380,
+          height: "calc(100vh - 64px)",
           background: "var(--surface)",
           borderRight: "1px solid var(--border)",
           transform: open ? "translateX(0)" : "translateX(-100%)",
           transition: "transform 300ms cubic-bezier(0.4,0,0.2,1)",
-          boxShadow: open ? "4px 0 32px rgba(0,0,0,0.4)" : "none",
+          boxShadow: open ? "4px 0 40px rgba(0,0,0,0.5)" : "none",
         }}
       >
       {/* Tab bar + close */}
@@ -174,7 +188,7 @@ export default function Sidebar({
           <button
             key={key}
             onClick={() => onTabChange(key)}
-            className="py-3 px-3 text-xs font-semibold uppercase tracking-wider transition-colors"
+            className="py-3.5 px-4 text-xs font-semibold uppercase tracking-wider transition-colors"
             style={{
               color: tab === key ? "var(--accent)" : "var(--muted)",
               borderBottom: tab === key ? "2px solid var(--accent)" : "2px solid transparent",
@@ -188,20 +202,20 @@ export default function Sidebar({
         <div className="flex-1" />
         <button
           onClick={onClose}
-          className="p-2.5 mr-1 rounded transition-colors hover:bg-white/5"
+          className="p-2.5 mr-1 rounded-lg transition-colors hover:bg-white/5"
           style={{ color: "var(--muted)" }}
         >
           <X size={14} />
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-5">
         {/* ── Patent Detail Tab ── */}
         {tab === "patent" && groupSelection.length > 0 && (
           <div className="flex flex-col gap-4">
             {/* Query interpretation banner */}
             {queryInterpretation && (
-              <div className="rounded p-3 flex flex-col gap-2" style={{ background: "rgba(232,228,222,0.06)", border: "1px solid rgba(232,228,222,0.2)" }}>
+              <div className="rounded-xl p-4 flex flex-col gap-2" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.2)" }}>
                 {queryInterpretation.correctedQuery !== queryInterpretation.keywords.join(" ") && (
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-xs font-semibold" style={{ color: "var(--accent)" }}>Searching for:</span>
@@ -212,8 +226,8 @@ export default function Sidebar({
                 {queryInterpretation.keywords.length > 0 && (
                   <div className="flex flex-wrap gap-1">
                     {queryInterpretation.keywords.slice(0, 8).map(kw => (
-                      <span key={kw} className="text-xs px-1.5 py-0.5 rounded"
-                        style={{ background: "rgba(232,228,222,0.1)", color: "var(--accent)", fontSize: 10 }}>
+                      <span key={kw} className="text-xs px-1.5 py-0.5 rounded-lg"
+                        style={{ background: "rgba(255,255,255,0.08)", color: "var(--accent)", fontSize: 10 }}>
                         {kw}
                       </span>
                     ))}
@@ -232,7 +246,7 @@ export default function Sidebar({
                   {groupYearRange}
                 </div>
               </div>
-              <button onClick={onGroupClose} className="p-1 rounded hover:bg-white/5 transition-colors" style={{ color: "var(--muted)" }}>
+              <button onClick={onGroupClose} className="p-1 rounded-lg hover:bg-white/5 transition-colors" style={{ color: "var(--muted)" }}>
                 <X size={14} />
               </button>
             </div>
@@ -240,7 +254,7 @@ export default function Sidebar({
             {/* Category chips */}
             <div className="flex flex-wrap gap-1.5">
               {uniqueCategories.map(cat => (
-                <span key={cat} className="text-xs px-2 py-0.5 rounded"
+                <span key={cat} className="text-xs px-2 py-0.5 rounded-lg"
                   style={{ background: `${CATEGORY_COLORS[cat] ?? "#888"}22`, color: CATEGORY_COLORS[cat] ?? "#888", border: `1px solid ${CATEGORY_COLORS[cat] ?? "#888"}44` }}>
                   {cat}
                 </span>
@@ -249,7 +263,7 @@ export default function Sidebar({
 
             {/* Loading state */}
             {groupSummaryLoading && (
-              <div className="flex items-center gap-2 text-xs rounded p-3" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--muted)" }}>
+              <div className="flex items-center gap-2 text-xs rounded-xl p-4" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--muted)" }}>
                 <svg className="animate-spin flex-shrink-0" width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                   <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
                 </svg>
@@ -272,7 +286,7 @@ export default function Sidebar({
                     <div className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--muted)" }}>Key Themes</div>
                     <div className="flex flex-wrap gap-1.5">
                       {groupSummary.themes.map(t => (
-                        <span key={t} className="text-xs px-2 py-0.5 rounded"
+                        <span key={t} className="text-xs px-2 py-0.5 rounded-lg"
                           style={{ background: "var(--surface-2)", color: "var(--accent-light)", border: "1px solid var(--border)" }}>
                           {t}
                         </span>
@@ -298,7 +312,7 @@ export default function Sidebar({
 
                 {/* Innovation insights */}
                 {groupSummary.innovationInsights && (
-                  <div className="rounded p-3" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+                  <div className="rounded-xl p-4" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
                     <div className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--muted)" }}>Innovation Insights</div>
                     <p className="text-xs leading-relaxed" style={{ color: "var(--muted)" }}>{groupSummary.innovationInsights}</p>
                   </div>
@@ -318,7 +332,7 @@ export default function Sidebar({
                     <div className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--muted)" }}>Key Players</div>
                     <div className="flex flex-wrap gap-1.5">
                       {groupSummary.keyPlayers.map(p => (
-                        <span key={p} className="text-xs px-2 py-0.5 rounded"
+                        <span key={p} className="text-xs px-2 py-0.5 rounded-lg"
                           style={{ background: "var(--surface-2)", color: "#94a3b8", border: "1px solid var(--border)" }}>
                           {p}
                         </span>
@@ -328,7 +342,7 @@ export default function Sidebar({
                 )}
 
                 <button onClick={onGroupSummarize}
-                  className="text-xs py-1.5 px-3 rounded transition-opacity hover:opacity-70 self-start"
+                  className="text-xs py-1.5 px-3 rounded-lg transition-opacity hover:opacity-70 self-start"
                   style={{ background: "var(--surface-2)", color: "var(--muted)", border: "1px solid var(--border)" }}>
                   Re-analyze
                 </button>
@@ -338,7 +352,7 @@ export default function Sidebar({
             {/* No summary yet (shouldn't normally show since we auto-trigger) */}
             {!groupSummaryLoading && !groupSummary && (
               <button onClick={onGroupSummarize}
-                className="text-xs py-2 px-3 rounded font-medium transition-opacity hover:opacity-90"
+                className="text-xs py-2 px-3 rounded-lg font-medium transition-opacity hover:opacity-90"
                 style={{ background: "var(--accent)", color: "#000" }}>
                 Summarize with AI
               </button>
@@ -354,7 +368,7 @@ export default function Sidebar({
                   <button
                     key={p.id}
                     onClick={() => { onSelectPatent(p); }}
-                    className="flex items-start gap-2 text-left px-2 py-2 rounded transition-colors hover:bg-white/5 group"
+                    className="flex items-start gap-2 text-left px-2 py-2 rounded-lg transition-colors hover:bg-white/5 group"
                   >
                     <span className="w-2 h-2 rounded flex-shrink-0 mt-1" style={{ background: CATEGORY_COLORS[p.category] ?? "#888" }} />
                     <div className="flex-1 min-w-0">
@@ -396,7 +410,7 @@ export default function Sidebar({
                   else if (wf.action === "main-menu") { onMainMenu?.(); }
                   else { onClose(); }
                 }}
-                className="flex gap-3 items-start text-left p-3 rounded transition-all"
+                className="flex gap-3 items-start text-left p-4 rounded-xl transition-all"
                 style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}
                 onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--accent-light)")}
                 onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border)")}
@@ -414,7 +428,7 @@ export default function Sidebar({
                 <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--muted)" }}>Recent Activity</div>
                 <div className="flex flex-col gap-1">
                   {sessionHistory.slice(0, 4).map(entry => (
-                    <div key={entry.id} className="flex items-center gap-2 text-xs py-1.5 px-2 rounded" style={{ background: "var(--surface-2)" }}>
+                    <div key={entry.id} className="flex items-center gap-2 text-xs py-1.5 px-2 rounded-xl" style={{ background: "var(--surface-2)" }}>
                       <span style={{ color: HISTORY_COLORS[entry.type], fontSize: 13 }}>{HISTORY_ICONS[entry.type]}</span>
                       <span className="truncate flex-1" style={{ color: "var(--foreground)" }}>{entry.label}</span>
                       <span style={{ color: "var(--muted)", flexShrink: 0 }}>{relativeTime(entry.timestamp)}</span>
@@ -427,35 +441,88 @@ export default function Sidebar({
         )}
 
         {tab === "patent" && groupSelection.length === 0 && selected && (
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-5">
+              {/* ── Header: ID + Status + Close ── */}
               <div className="flex items-start justify-between gap-2">
-                <span className="text-xs font-mono px-2 py-1 rounded" style={{ background: "var(--surface-2)", color: "var(--accent-light)" }}>
-                  {selected.id}
-                </span>
-                <button onClick={onClear} className="p-1 rounded hover:bg-white/5 transition-colors" style={{ color: "var(--muted)" }}>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-mono px-2 py-1 rounded-lg" style={{ background: "var(--surface-2)", color: "var(--accent-light)" }}>
+                    {selected.id}
+                  </span>
+                  {selected.status && (
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                      style={{
+                        background: STATUS_STYLES[selected.status]?.bg,
+                        color: STATUS_STYLES[selected.status]?.color,
+                      }}>
+                      {STATUS_STYLES[selected.status]?.label}
+                    </span>
+                  )}
+                </div>
+                <button onClick={onClear} className="p-1 rounded-lg hover:bg-white/5 transition-colors flex-shrink-0" style={{ color: "var(--muted)" }}>
                   <X size={14} />
                 </button>
               </div>
 
-              <h2 className="text-sm font-semibold leading-snug" style={{ color: "#e2e8f0" }}>{selected.title}</h2>
+              {/* ── Title ── */}
+              <h2 className="text-base font-semibold leading-snug" style={{ color: "var(--foreground)" }}>{selected.title}</h2>
 
+              {/* ── Tags: Category + Year ── */}
               <div className="flex gap-2 flex-wrap">
-                <span
-                  className="text-xs px-2 py-0.5 rounded"
-                  style={{ background: `${CATEGORY_COLORS[selected.category] ?? "#888"}22`, color: CATEGORY_COLORS[selected.category] ?? "#888" }}
-                >
+                <span className="text-xs px-2 py-0.5 rounded-lg"
+                  style={{ background: `${CATEGORY_COLORS[selected.category] ?? "#888"}22`, color: CATEGORY_COLORS[selected.category] ?? "#888" }}>
                   {selected.category}
                 </span>
-                <span className="text-xs px-2 py-0.5 rounded" style={{ background: "var(--surface-2)", color: "var(--muted)" }}>
+                <span className="text-xs px-2 py-0.5 rounded-lg" style={{ background: "var(--surface-2)", color: "var(--muted)" }}>
                   {selected.year}
                 </span>
-                {selected.assignee && (
-                  <span className="text-xs px-2 py-0.5 rounded" style={{ background: "var(--surface-2)", color: "var(--muted)" }}>
-                    {selected.assignee}
-                  </span>
-                )}
               </div>
 
+              {/* ── Owner ── */}
+              {selected.assignee && (
+                <div className="rounded-xl p-4" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Building2 size={13} style={{ color: "var(--muted)" }} />
+                    <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--muted)" }}>Owner</div>
+                  </div>
+                  <div className="text-sm font-medium" style={{ color: "var(--foreground)" }}>{selected.assignee}</div>
+                </div>
+              )}
+
+              {/* ── Patent Info Grid ── */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-xl p-3" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+                  <div className="text-xs uppercase tracking-wider mb-1" style={{ color: "var(--muted)", fontSize: 10 }}>Citations</div>
+                  <div className="text-lg font-semibold tabular-nums" style={{ color: "var(--foreground)" }}>
+                    {selected.citationCount ?? 0}
+                  </div>
+                </div>
+                <div className="rounded-xl p-3" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+                  <div className="text-xs uppercase tracking-wider mb-1" style={{ color: "var(--muted)", fontSize: 10 }}>Grant Year</div>
+                  <div className="text-lg font-semibold tabular-nums" style={{ color: "var(--foreground)" }}>
+                    {selected.year}
+                  </div>
+                </div>
+              </div>
+
+              {/* ── IPC Classification ── */}
+              {selected.ipcCodes && selected.ipcCodes.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <ScrollText size={13} style={{ color: "var(--muted)" }} />
+                    <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--muted)" }}>IPC Classification</div>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selected.ipcCodes.map(code => (
+                      <span key={code} className="text-xs font-mono px-2 py-1 rounded-lg"
+                        style={{ background: "var(--surface-2)", color: "var(--accent-light)", border: "1px solid var(--border)" }}>
+                        {code}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Abstract ── */}
               {selected.abstract && (
                 <div>
                   <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--muted)" }}>Abstract</div>
@@ -463,9 +530,43 @@ export default function Sidebar({
                 </div>
               )}
 
-              {/* AI Translation */}
-              <div className="rounded p-3 flex flex-col gap-2" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
-                <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--muted)" }}>AI Plain Language</div>
+              {/* ── Patent Timeline ── */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Clock size={13} style={{ color: "var(--muted)" }} />
+                  <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--muted)" }}>History</div>
+                </div>
+                <div className="flex flex-col gap-0 relative ml-2">
+                  <div className="absolute left-[5px] top-1 bottom-1 w-px" style={{ background: "var(--border)" }} />
+                  {[
+                    { label: "Filed", value: `~${selected.year - 2}`, icon: "○", dim: true },
+                    { label: "Granted", value: String(selected.year), icon: "●", dim: false },
+                    { label: "Expires", value: `~${selected.year - 2 + 20}`, icon: selected.status === "expired" ? "✕" : "◇", dim: selected.status === "expired" },
+                  ].map((event) => (
+                    <div key={event.label} className="flex items-center gap-3 py-1.5 relative">
+                      <span className="text-xs flex-shrink-0 relative z-10" style={{
+                        color: event.dim ? "var(--muted)" : "var(--foreground)",
+                        width: 12,
+                        textAlign: "center",
+                        background: "var(--surface)",
+                      }}>
+                        {event.icon}
+                      </span>
+                      <div className="flex items-center justify-between flex-1 gap-2">
+                        <span className="text-xs font-medium" style={{ color: event.dim ? "var(--muted)" : "var(--foreground)" }}>{event.label}</span>
+                        <span className="text-xs tabular-nums" style={{ color: "var(--muted)" }}>{event.value}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* ── AI Translation ── */}
+              <div className="rounded-xl p-4 flex flex-col gap-2" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+                <div className="flex items-center gap-2">
+                  <Sparkles size={13} style={{ color: "var(--muted)" }} />
+                  <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--muted)" }}>AI Plain Language</div>
+                </div>
 
                 {!translation && !translationLoading && (
                   <>
@@ -474,7 +575,7 @@ export default function Sidebar({
                     </p>
                     <button
                       onClick={onTranslate}
-                      className="mt-1 text-xs py-1.5 px-3 rounded-md font-medium transition-colors hover:opacity-90"
+                      className="mt-1 text-xs py-1.5 px-3 rounded-xl font-medium transition-colors hover:opacity-90"
                       style={{ background: "var(--accent)", color: "#000" }}
                     >
                       Translate with AI
@@ -504,15 +605,15 @@ export default function Sidebar({
                     </div>
                     <div className="flex flex-wrap gap-1">
                       {translation.technicalFields.map((f) => (
-                        <span key={f} className="text-xs px-1.5 py-0.5 rounded"
-                          style={{ background: "rgba(232,228,222,0.15)", color: "var(--accent-light)" }}>
+                        <span key={f} className="text-xs px-1.5 py-0.5 rounded-lg"
+                          style={{ background: "rgba(255,255,255,0.15)", color: "var(--accent-light)" }}>
                           {f}
                         </span>
                       ))}
                     </div>
                     <button
                       onClick={onTranslate}
-                      className="text-xs py-1 px-2 rounded font-medium self-start hover:opacity-80"
+                      className="text-xs py-1 px-2 rounded-lg font-medium self-start hover:opacity-80"
                       style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--muted)" }}
                     >
                       Re-translate
@@ -521,16 +622,59 @@ export default function Sidebar({
                 )}
               </div>
 
-              {/* Compare shortcut */}
+              {/* ── Compare shortcut ── */}
               <button
                 onClick={() => onTabChange("compare")}
-                className="flex items-center gap-2 text-xs py-2 px-3 rounded transition-colors w-full"
+                className="flex items-center gap-2 text-xs py-2 px-3 rounded-xl transition-colors w-full"
                 style={{ border: "1px solid var(--border)", color: "var(--muted)", background: "var(--surface-2)" }}
               >
                 <Layers size={12} />
                 Add to comparison (Shift+click on map)
                 <ChevronRight size={12} style={{ marginLeft: "auto" }} />
               </button>
+
+              {/* ── Similar Patents ── */}
+              {similarPatents.length > 0 && (
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--muted)" }}>
+                    Similar Patents
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    {similarPatents.map(p => (
+                      <button
+                        key={p.id}
+                        onClick={() => onSelectPatent(p)}
+                        className="flex items-start gap-2 text-left px-3 py-2.5 rounded-xl transition-colors hover:bg-white/5 group"
+                        style={{ border: "1px solid transparent" }}
+                        onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--border)")}
+                        onMouseLeave={e => (e.currentTarget.style.borderColor = "transparent")}
+                      >
+                        <span className="w-2 h-2 rounded flex-shrink-0 mt-1.5" style={{ background: CATEGORY_COLORS[p.category] ?? "#888" }} />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs leading-snug font-medium truncate group-hover:text-clip" style={{ color: "var(--foreground)" }}>
+                            {p.title}
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-xs" style={{ color: "var(--muted)", fontSize: 10 }}>
+                              {p.year} · {p.assignee ?? p.category}
+                            </span>
+                            {p.status && (
+                              <span className="text-xs px-1.5 py-px rounded-full" style={{
+                                background: STATUS_STYLES[p.status]?.bg,
+                                color: STATUS_STYLES[p.status]?.color,
+                                fontSize: 9,
+                              }}>
+                                {STATUS_STYLES[p.status]?.label}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <ChevronRight size={11} className="flex-shrink-0 mt-1.5 opacity-0 group-hover:opacity-50" style={{ color: "var(--muted)" }} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
         )}
 
@@ -561,7 +705,7 @@ export default function Sidebar({
                     value={ideaText}
                     onChange={(e) => setIdeaText(e.target.value)}
                     placeholder="e.g. A wearable device that monitors blood glucose levels using non-invasive optical sensors and provides real-time alerts via a mobile app…"
-                    className="w-full rounded text-xs p-3 outline-none resize-none"
+                    className="w-full rounded-lg text-xs p-3 outline-none resize-none"
                     style={{
                       background: "var(--surface-2)",
                       border: "1px solid var(--border)",
@@ -600,8 +744,8 @@ export default function Sidebar({
                 {ideaText.trim() && (
                   <button
                     onClick={() => onAnalyzeIdea(ideaText)}
-                    className="text-xs font-medium py-2 px-4 rounded transition-opacity hover:opacity-90 w-full"
-                    style={{ background: "var(--accent)", color: "#0a0a0f" }}
+                    className="text-xs font-medium py-2 px-4 rounded-lg transition-opacity hover:opacity-90 w-full"
+                    style={{ background: "var(--accent)", color: "#000000" }}
                   >
                     Analyze idea
                   </button>
@@ -622,10 +766,10 @@ export default function Sidebar({
                 onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                 onDragLeave={() => setDragOver(false)}
                 onDrop={handleDrop}
-                className="relative flex flex-col items-center justify-center gap-2 rounded p-4 cursor-pointer transition-colors"
+                className="relative flex flex-col items-center justify-center gap-2 rounded-xl p-4 cursor-pointer transition-colors"
                 style={{
                   border: `2px solid ${dragOver ? "var(--accent)" : "var(--border)"}`,
-                  background: dragOver ? "rgba(232,228,222,0.06)" : "var(--surface-2)",
+                  background: dragOver ? "rgba(255,255,255,0.06)" : "var(--surface-2)",
                   minHeight: 80,
                 }}
               >
@@ -642,8 +786,8 @@ export default function Sidebar({
             )}
 
             {uploadedFile && !uploadResult && !uploadLoading && (
-              <div className="flex items-center gap-2 rounded px-3 py-2"
-                style={{ background: "rgba(232,228,222,0.1)", border: "1px solid rgba(232,228,222,0.3)" }}>
+              <div className="flex items-center gap-2 rounded-xl px-3 py-2"
+                style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.3)" }}>
                 <FileText size={14} style={{ color: "var(--accent-light)" }} />
                 <span className="text-xs truncate flex-1" style={{ color: "var(--accent-light)" }}>{uploadedFile}</span>
                 <button onClick={() => setUploadedFile(null)} style={{ color: "var(--muted)" }}>
@@ -653,7 +797,7 @@ export default function Sidebar({
             )}
 
             {uploadLoading && (
-              <div className="flex flex-col gap-2 rounded p-4" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+              <div className="flex flex-col gap-2 rounded-xl p-4" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
                 <div className="flex items-center gap-2 text-xs" style={{ color: "var(--muted)" }}>
                   <svg className="animate-spin" width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                     <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
@@ -724,7 +868,7 @@ export default function Sidebar({
                 {sessionHistory.map(entry => (
                   <div
                     key={entry.id}
-                    className="flex items-start gap-2.5 rounded px-2.5 py-2 transition-colors"
+                    className="flex items-start gap-2.5 rounded-lg px-2.5 py-2 transition-colors"
                     style={{ border: "1px solid transparent" }}
                     onMouseEnter={e => (e.currentTarget.style.background = "var(--surface-2)")}
                     onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
@@ -754,7 +898,7 @@ export default function Sidebar({
             {compareCount > 0 ? (
               <button
                 onClick={onOpenCompare}
-                className="flex items-center justify-center gap-2 py-2.5 px-4 rounded text-sm font-medium hover:opacity-90 transition-opacity"
+                className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
                 style={{ background: "var(--accent)", color: "#000" }}
               >
                 <Layers size={14} />
@@ -771,7 +915,7 @@ export default function Sidebar({
                     </span>
                   ))}
                 </div>
-                <div className="flex flex-col items-center justify-center h-24 gap-2 rounded" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+                <div className="flex flex-col items-center justify-center h-24 gap-2 rounded-xl" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
                   <Layers size={20} style={{ color: "var(--muted)", opacity: 0.4 }} />
                   <p className="text-xs text-center" style={{ color: "var(--muted)" }}>No patents selected yet</p>
                 </div>

@@ -11,6 +11,7 @@ export interface Patent {
   ipcCodes?: string[];
   citationCount?: number;
   citations?: string[];
+  status?: "active" | "pending" | "expired";
 }
 
 export interface CitationLink {

@@ -43,14 +43,14 @@ export default function DatasetPanel({
       {/* Toggle bar */}
       <button
         onClick={() => setExpanded(v => !v)}
-        className="w-full flex items-center justify-between px-4 py-2.5 text-sm font-semibold transition-colors"
+        className="w-full flex items-center justify-between px-6 py-3 text-sm font-semibold transition-colors"
         style={{ color: "var(--foreground)" }}
       >
         <span className="flex items-center gap-2">
           <span style={{ color: "var(--muted)", fontSize: 15 }}>+</span>
           Add or remove datasets
           <span
-            className="px-1.5 py-0.5 rounded text-xs font-mono"
+            className="px-1.5 py-0.5 rounded-lg text-xs font-mono"
             style={{ background: "var(--surface-2)", color: "var(--muted)", fontSize: 10 }}
           >
             {activeCategories.size} / {Object.keys(CATEGORY_COLORS).length} active
@@ -60,7 +60,7 @@ export default function DatasetPanel({
       </button>
 
       {expanded && (
-        <div className="flex flex-col gap-6 px-6 pb-6">
+        <div className="flex flex-col gap-8 px-6 pb-6">
 
           {/* Year range slider */}
           <div className="flex items-center gap-3">
@@ -96,7 +96,7 @@ export default function DatasetPanel({
                 <button
                   key={domain.name}
                   onClick={() => onToggleCategories(domain.subcategories, fullyActive ? false : true)}
-                  className="flex-shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded font-medium transition-all"
+                  className="flex-shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium transition-all"
                   style={{
                     background: "transparent",
                     border: `1px solid ${isOn ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.08)"}`,
@@ -124,7 +124,7 @@ export default function DatasetPanel({
                 <button
                   key={cat}
                   onClick={() => onToggleCategories([cat])}
-                  className="flex-shrink-0 flex items-center gap-1.5 text-xs px-2.5 py-1 rounded transition-all"
+                  className="flex-shrink-0 flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg transition-all"
                   style={{
                     background: "transparent",
                     border: `1px solid ${active ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.06)"}`,
@@ -150,7 +150,7 @@ export default function DatasetPanel({
                 <button
                   key={topic}
                   onClick={() => onTopicSearch?.(topic)}
-                  className="flex-shrink-0 text-xs px-2 py-0.5 rounded transition-all"
+                  className="flex-shrink-0 text-xs px-2 py-0.5 rounded-lg transition-all"
                   style={{
                     background: "transparent",
                     border: "1px solid rgba(255,255,255,0.06)",
@@ -191,7 +191,7 @@ function LevelRow({ label, sublabel, level, children }: {
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center gap-2">
         <span
-          className="text-xs font-bold px-1.5 py-0.5 rounded"
+          className="text-xs font-bold px-1.5 py-0.5 rounded-lg"
           style={{ background: `${badgeColors[level]}18`, color: badgeColors[level], fontSize: 10 }}
         >
           L{level}

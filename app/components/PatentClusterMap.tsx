@@ -200,30 +200,22 @@ export default function PatentClusterMap({
     yScaleRef.current = yScale;
 
     // SVG layer groups in z-order
-    // Ghost arc decorations (blueprint feel)
-    const ghostG = g.append("g").attr("class", "ghost-arcs");
-    const ghostArcs = [
-      { cx: W * 0.15, cy: H * 0.2, r: 140, startAngle: 0.3, endAngle: 1.8 },
-      { cx: W * 0.85, cy: H * 0.75, r: 180, startAngle: 2.5, endAngle: 4.8 },
-      { cx: W * 0.5, cy: H * 0.5, r: 280, startAngle: 1.0, endAngle: 2.2 },
-      { cx: W * 0.25, cy: H * 0.8, r: 100, startAngle: 4.0, endAngle: 5.8 },
-      { cx: W * 0.75, cy: H * 0.15, r: 120, startAngle: 0.5, endAngle: 2.0 },
-    ];
-    for (const arc of ghostArcs) {
-      const pathD = d3.arc<unknown>()({
-        innerRadius: arc.r, outerRadius: arc.r,
-        startAngle: arc.startAngle, endAngle: arc.endAngle,
-      });
-      if (pathD) {
-        ghostG.append("path")
-          .attr("d", pathD)
-          .attr("transform", `translate(${arc.cx},${arc.cy})`)
-          .attr("fill", "none")
-          .attr("stroke", "#ffffff")
-          .attr("stroke-opacity", 0.025)
-          .attr("stroke-width", 0.5)
-          .attr("stroke-dasharray", "3 8");
-      }
+    // Geometric grid lines (Paper.design style)
+    const gridG = g.append("g").attr("class", "grid-lines");
+    for (let x = 0; x < W; x += 120) {
+      gridG.append("line")
+        .attr("x1", x).attr("y1", 0).attr("x2", x).attr("y2", H)
+        .attr("stroke", "#ffffff").attr("stroke-opacity", 0.03).attr("stroke-width", 0.5);
+    }
+    for (let y = 0; y < H; y += 120) {
+      gridG.append("line")
+        .attr("x1", 0).attr("y1", y).attr("x2", W).attr("y2", y)
+        .attr("stroke", "#ffffff").attr("stroke-opacity", 0.03).attr("stroke-width", 0.5);
+    }
+    for (let d = -H; d < W + H; d += 200) {
+      gridG.append("line")
+        .attr("x1", d).attr("y1", 0).attr("x2", d + H).attr("y2", H)
+        .attr("stroke", "#ffffff").attr("stroke-opacity", 0.015).attr("stroke-width", 0.5);
     }
 
     contoursGRef.current = g.append("g").attr("class", "contours-layer");
@@ -298,7 +290,7 @@ export default function PatentClusterMap({
       .join("path")
       .attr("d", d3.geoPath())
       .attr("fill", "none")
-      .attr("stroke", "#e8e4de")
+      .attr("stroke", "#f0f0f0")
       .attr("stroke-opacity", (_, i) => 0.35 + i * 0.08)
       .attr("stroke-width", 1.5)
       .attr("stroke-linejoin", "round");
@@ -579,8 +571,8 @@ export default function PatentClusterMap({
       <div className="absolute top-3 left-3 flex flex-col gap-2" style={{ zIndex: 15, width: 280 }}>
         <button
           onClick={onToggleDrawer}
-          className="self-start flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded font-medium transition-all hover:shadow-sm"
-          style={{ background: "rgba(20,19,17,0.7)", border: "1px solid rgba(255,255,255,0.1)", color: "var(--foreground)", boxShadow: "0 1px 8px rgba(0,0,0,0.3)", backdropFilter: "blur(12px)" }}
+          className="self-start flex items-center gap-1.5 text-sm px-3 py-2 font-medium transition-all hover:shadow-sm"
+          style={{ background: "rgba(17,17,17,0.75)", border: "1px solid rgba(255,255,255,0.08)", color: "var(--foreground)", boxShadow: "0 1px 8px rgba(0,0,0,0.3)", backdropFilter: "blur(16px)", borderRadius: 10 }}
         >
           <svg width={13} height={13} viewBox="0 0 16 16" fill="none">
             <rect x="1" y="3" width="14" height="1.5" rx="0.75" fill="currentColor" />
@@ -592,8 +584,8 @@ export default function PatentClusterMap({
 
         {/* Concept search bar */}
         <div
-          className="flex flex-col rounded overflow-hidden"
-          style={{ background: "rgba(20,19,17,0.7)", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 2px 16px rgba(0,0,0,0.3)", backdropFilter: "blur(12px)" }}
+          className="flex flex-col overflow-hidden"
+          style={{ background: "rgba(17,17,17,0.75)", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 2px 16px rgba(0,0,0,0.3)", backdropFilter: "blur(16px)", borderRadius: 10 }}
         >
           <div className="flex items-center gap-2 px-3 py-2">
             <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth={2.5} style={{ flexShrink: 0 }}>
@@ -635,12 +627,12 @@ export default function PatentClusterMap({
 
       {/* Draw mode button */}
       <div
-        className="absolute top-3 right-3 flex gap-1 rounded p-1"
-        style={{ background: "rgba(20,19,17,0.7)", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 1px 8px rgba(0,0,0,0.3)", backdropFilter: "blur(12px)", zIndex: 15 }}
+        className="absolute top-3 right-3 flex gap-1 p-1"
+        style={{ background: "rgba(17,17,17,0.75)", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 1px 8px rgba(0,0,0,0.3)", backdropFilter: "blur(16px)", zIndex: 15, borderRadius: 10 }}
       >
         <button
           onClick={() => onDrawModeChange(!drawMode)}
-          className="text-xs px-2.5 py-1 rounded-md font-medium transition-colors"
+          className="text-sm px-3 py-1.5 rounded-lg font-medium transition-colors"
           title="Draw a circle to select and summarize a group of patents"
           style={{
             background: drawMode ? "var(--accent)" : "transparent",
@@ -654,15 +646,15 @@ export default function PatentClusterMap({
       {/* Legend toggle */}
       <button
         onClick={() => setShowLegend(v => !v)}
-        className="absolute top-12 right-3 text-xs px-2 py-1 rounded font-medium"
-        style={{ background: "rgba(0,0,0,0.75)", border: "1px solid rgba(255,255,255,0.1)", color: "var(--muted)", zIndex: 15, backdropFilter: "blur(8px)" }}
+        className="absolute top-12 right-3 text-sm px-3 py-1.5 font-medium"
+        style={{ background: "rgba(0,0,0,0.75)", border: "1px solid rgba(255,255,255,0.08)", color: "var(--muted)", zIndex: 15, backdropFilter: "blur(16px)", borderRadius: 10 }}
       >
         {showLegend ? "Hide legend" : "Legend"}
       </button>
       {showLegend && (
         <div
-          className="absolute top-20 right-3 rounded flex flex-col gap-1 px-3 py-2.5"
-          style={{ background: "rgba(0,0,0,0.75)", border: "1px solid rgba(255,255,255,0.1)", zIndex: 15, backdropFilter: "blur(8px)" }}
+          className="absolute top-20 right-3 flex flex-col gap-1"
+          style={{ background: "rgba(0,0,0,0.75)", border: "1px solid rgba(255,255,255,0.08)", zIndex: 15, backdropFilter: "blur(16px)", borderRadius: 10, padding: "14px 16px" }}
         >
           {DOMAIN_HIERARCHY.map(d => (
             <div key={d.name} className="flex items-center gap-2">
@@ -677,7 +669,7 @@ export default function PatentClusterMap({
       {compareSet.size >= 1 && (
         <div className="absolute bottom-3 right-3" style={{ zIndex: 15 }}>
           <div className="text-xs px-3 py-1.5 rounded font-medium"
-            style={{ background: "var(--accent)", color: "#111110", boxShadow: "0 2px 8px rgba(232,228,222,0.15)" }}>
+            style={{ background: "var(--accent)", color: "#111111", boxShadow: "0 2px 8px rgba(255,255,255,0.15)" }}>
             {compareSet.size} selected — Shift+click to add · see Compare tab
           </div>
         </div>
@@ -686,7 +678,7 @@ export default function PatentClusterMap({
       {/* Loading overlay */}
       {searching && (
         <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(17,17,16,0.8)", zIndex: 20 }}>
-          <div className="flex items-center gap-2 text-sm px-4 py-3 rounded" style={{ background: "var(--surface)", border: "1px solid rgba(255,255,255,0.1)", color: "var(--muted)", boxShadow: "0 4px 16px rgba(0,0,0,0.3)", backdropFilter: "blur(8px)" }}>
+          <div className="flex items-center gap-2 text-sm px-4 py-3 rounded" style={{ background: "var(--surface)", border: "1px solid rgba(255,255,255,0.08)", color: "var(--muted)", boxShadow: "0 4px 16px rgba(0,0,0,0.3)", backdropFilter: "blur(8px)" }}>
             <svg className="animate-spin" width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth={2.5}>
               <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
             </svg>

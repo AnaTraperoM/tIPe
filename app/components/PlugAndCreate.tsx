@@ -66,19 +66,19 @@ export default function PlugAndCreate({
       >
         <div>
           <h2
-            className="text-sm font-semibold"
+            className="text-lg font-semibold"
             style={{ color: "var(--foreground)" }}
           >
             Plug &amp; Create
           </h2>
-          <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
+          <p className="text-sm mt-0.5" style={{ color: "var(--muted)" }}>
             Combine 2+ patents to generate a novel idea
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={onMainMenu}
-            className="text-xs px-3 py-1.5 rounded transition-colors hover:opacity-80"
+            className="text-xs px-3 py-1.5 rounded-lg transition-colors hover:opacity-80"
             style={{
               background: "var(--surface-2)",
               border: "1px solid var(--border)",
@@ -102,12 +102,12 @@ export default function PlugAndCreate({
           <div className="flex flex-col gap-5">
             {/* Selection tabs */}
             <div
-              className="flex gap-1 p-1 rounded"
+              className="flex gap-1 p-1 rounded-xl"
               style={{ background: "var(--surface-2)" }}
             >
               <button
                 onClick={() => setTab("click")}
-                className="flex items-center gap-1.5 flex-1 py-2 px-3 rounded text-xs font-medium transition-colors"
+                className="flex items-center gap-1.5 flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors"
                 style={{
                   background: tab === "click" ? "var(--surface)" : "transparent",
                   color: tab === "click" ? "var(--foreground)" : "var(--muted)",
@@ -122,7 +122,7 @@ export default function PlugAndCreate({
               </button>
               <button
                 onClick={() => setTab("search")}
-                className="flex items-center gap-1.5 flex-1 py-2 px-3 rounded text-xs font-medium transition-colors"
+                className="flex items-center gap-1.5 flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors"
                 style={{
                   background: tab === "search" ? "var(--surface)" : "transparent",
                   color: tab === "search" ? "var(--foreground)" : "var(--muted)",
@@ -140,7 +140,7 @@ export default function PlugAndCreate({
             {/* Click tab */}
             {tab === "click" && (
               <div
-                className="rounded p-4 text-center"
+                className="rounded-xl p-4 text-center"
                 style={{
                   background: "var(--surface-2)",
                   border: "1px solid var(--border)",
@@ -151,7 +151,7 @@ export default function PlugAndCreate({
                   className="mx-auto mb-2"
                   style={{ color: "var(--muted)" }}
                 />
-                <p className="text-xs" style={{ color: "var(--muted)" }}>
+                <p className="text-sm" style={{ color: "var(--muted)" }}>
                   Click on patents in the map to select them.
                   <br />
                   Select 2 or more to generate an idea.
@@ -163,7 +163,7 @@ export default function PlugAndCreate({
             {tab === "search" && (
               <div className="flex flex-col gap-3">
                 <div
-                  className="flex items-center gap-2 rounded px-3 py-2"
+                  className="flex items-center gap-2 rounded-xl px-4 py-3"
                   style={{
                     background: "var(--surface-2)",
                     border: "1px solid var(--border)",
@@ -192,7 +192,7 @@ export default function PlugAndCreate({
                         className="flex items-start gap-2 text-left px-2 py-2 rounded transition-colors hover:bg-white/5"
                         style={{
                           background: selectedPatents.has(p.id)
-                            ? "rgba(232,228,222,0.08)"
+                            ? "rgba(255,255,255,0.08)"
                             : "transparent",
                         }}
                       >
@@ -242,7 +242,7 @@ export default function PlugAndCreate({
             {selected.length > 0 && (
               <div className="flex flex-col gap-2">
                 <div
-                  className="text-xs font-semibold uppercase tracking-wider"
+                  className="text-sm font-semibold uppercase tracking-wider"
                   style={{ color: "var(--muted)" }}
                 >
                   Selected ({selected.length})
@@ -251,7 +251,7 @@ export default function PlugAndCreate({
                   {selected.map((p) => (
                     <div
                       key={p.id}
-                      className="flex items-center gap-2 px-2 py-1.5 rounded"
+                      className="flex items-center gap-2 px-2 py-1.5 rounded-lg"
                       style={{
                         background: "var(--surface-2)",
                         border: "1px solid var(--border)",
@@ -287,10 +287,10 @@ export default function PlugAndCreate({
             <button
               onClick={onGenerate}
               disabled={!canGenerate || loading}
-              className="flex items-center justify-center gap-2 text-sm font-medium py-3 px-6 rounded transition-opacity"
+              className="flex items-center justify-center gap-2 text-sm font-medium py-3.5 px-8 rounded-xl transition-opacity"
               style={{
                 background: canGenerate ? "var(--accent)" : "var(--surface-2)",
-                color: canGenerate ? "#0a0a0f" : "var(--muted)",
+                color: canGenerate ? "#000000" : "var(--muted)",
                 border: canGenerate ? "none" : "1px solid var(--border)",
                 opacity: canGenerate && !loading ? 1 : 0.5,
                 cursor: canGenerate && !loading ? "pointer" : "not-allowed",
@@ -320,7 +320,7 @@ export default function PlugAndCreate({
             </button>
 
             {!canGenerate && (
-              <p className="text-xs text-center" style={{ color: "var(--muted)" }}>
+              <p className="text-sm text-center" style={{ color: "var(--muted)" }}>
                 Select at least 2 patents to generate an idea
               </p>
             )}
@@ -330,13 +330,13 @@ export default function PlugAndCreate({
           <div className="flex flex-col gap-6 max-w-2xl">
             <div>
               <h3
-                className="text-base font-semibold mb-2"
+                className="text-xl font-semibold mb-2"
                 style={{ color: "var(--foreground)" }}
               >
                 {result.title}
               </h3>
               <div
-                className="text-xs leading-relaxed whitespace-pre-line"
+                className="text-sm leading-relaxed whitespace-pre-line"
                 style={{ color: "var(--muted)" }}
               >
                 {result.description}
@@ -346,7 +346,7 @@ export default function PlugAndCreate({
             {/* Source elements */}
             <div>
               <div
-                className="text-xs font-semibold uppercase tracking-wider mb-2"
+                className="text-sm font-semibold uppercase tracking-wider mb-2"
                 style={{ color: "var(--accent)" }}
               >
                 Source Elements
@@ -355,7 +355,7 @@ export default function PlugAndCreate({
                 {result.sourceElements.map((s, i) => (
                   <div
                     key={i}
-                    className="rounded p-3"
+                    className="rounded-xl p-4"
                     style={{
                       background: "var(--surface-2)",
                       border: "1px solid var(--border)",
@@ -387,7 +387,7 @@ export default function PlugAndCreate({
             {/* Novelty */}
             <div>
               <div
-                className="text-xs font-semibold uppercase tracking-wider mb-2"
+                className="text-sm font-semibold uppercase tracking-wider mb-2"
                 style={{ color: "var(--accent)" }}
               >
                 Novelty Assessment
@@ -403,7 +403,7 @@ export default function PlugAndCreate({
             {/* Suggested claims */}
             <div>
               <div
-                className="text-xs font-semibold uppercase tracking-wider mb-2"
+                className="text-sm font-semibold uppercase tracking-wider mb-2"
                 style={{ color: "var(--accent)" }}
               >
                 Suggested Claims
@@ -412,7 +412,7 @@ export default function PlugAndCreate({
                 {result.suggestedClaims.map((claim, i) => (
                   <div
                     key={i}
-                    className="rounded p-3 text-xs leading-relaxed"
+                    className="rounded-xl p-4 text-xs leading-relaxed"
                     style={{
                       background: "var(--surface-2)",
                       border: "1px solid var(--border)",
@@ -438,8 +438,8 @@ export default function PlugAndCreate({
                   `${result.title}: ${result.description.slice(0, 500)}`
                 )
               }
-              className="flex items-center justify-center gap-2 text-sm font-medium py-3 px-6 rounded transition-opacity hover:opacity-90"
-              style={{ background: "var(--accent)", color: "#0a0a0f" }}
+              className="flex items-center justify-center gap-2 text-sm font-medium py-3 px-6 rounded-xl transition-opacity hover:opacity-90"
+              style={{ background: "var(--accent)", color: "#000000" }}
             >
               Check Patent Landscape &rarr;
             </button>

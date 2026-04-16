@@ -21,7 +21,7 @@ export default function AnalysisProgress({ steps, brief }: Props) {
         style={{ borderColor: "var(--border)" }}
       >
         <h2
-          className="text-sm font-semibold"
+          className="text-lg font-semibold"
           style={{ color: "var(--foreground)" }}
         >
           Analyzing Patent Landscape
@@ -35,21 +35,21 @@ export default function AnalysisProgress({ steps, brief }: Props) {
       </div>
 
       <div className="flex-1 flex items-center justify-center p-6">
-        <div className="flex flex-col gap-4 w-full max-w-md">
+        <div className="flex flex-col gap-5 w-full max-w-md">
           {steps.map((step) => (
             <div key={step.step} className="flex items-start gap-3">
               {/* Status icon */}
               <div className="flex-shrink-0 mt-0.5">
                 {step.status === "done" && (
                   <div
-                    className="w-5 h-5 rounded-full flex items-center justify-center text-xs"
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-xs"
                     style={{ background: "rgba(82,201,139,0.15)", color: "#52c98b" }}
                   >
                     &#x2713;
                   </div>
                 )}
                 {step.status === "active" && (
-                  <div className="w-5 h-5 flex items-center justify-center">
+                  <div className="w-6 h-6 flex items-center justify-center">
                     <svg
                       className="animate-spin"
                       width={16}
@@ -65,7 +65,7 @@ export default function AnalysisProgress({ steps, brief }: Props) {
                 )}
                 {step.status === "pending" && (
                   <div
-                    className="w-5 h-5 rounded-full border-2"
+                    className="w-6 h-6 rounded-full border-2"
                     style={{ borderColor: "var(--border)" }}
                   />
                 )}
@@ -74,7 +74,7 @@ export default function AnalysisProgress({ steps, brief }: Props) {
               {/* Label */}
               <div>
                 <div
-                  className="text-sm font-medium"
+                  className="text-base font-medium"
                   style={{
                     color:
                       step.status === "done"
@@ -91,7 +91,7 @@ export default function AnalysisProgress({ steps, brief }: Props) {
                   {step.step === "report" && "Report Generation"}
                 </div>
                 <div
-                  className="text-xs mt-0.5"
+                  className="text-sm mt-0.5"
                   style={{ color: "var(--muted)" }}
                 >
                   {step.message}
