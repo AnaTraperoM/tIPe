@@ -1,5 +1,6 @@
 import type { SearchRequest, Patent } from "./types";
 import { computeCoordinates } from "./embeddings";
+import { correctGrammar } from "./anthropic";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -203,11 +204,14 @@ export async function loadInitialPatents(limit: number = 3000): Promise<Patent[]
 }
 
 // ─── Local cache search (zero BigQuery cost) ────────────────────────────────
-export function searchCachedPatents(query: string, limit: number = 200): Patent[] {
+export async function searchCachedPatents(query: string, limit: number = 200): Promise<Patent[]> {
   const cached = readCache();
   if (!cached || cached.length === 0) return [];
 
-  const keywords = query
+  // Fix typos before keyword extraction
+  const corrected = await correctGrammar(query);
+
+  const keywords = corrected
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, " ")
     .split(/\s+/)
@@ -335,10 +339,13 @@ export async function vectorSearchByText(
   const { BigQuery } = await import("@google-cloud/bigquery");
   const bq = new BigQuery({ projectId: process.env.BIGQUERY_PROJECT_ID });
 
+  // Fix typos/grammar before keyword extraction so misspelled words don't miss LIKE matches
+  const correctedText = await correctGrammar(text);
+
   // Extract meaningful keywords (3+ chars, deduplicated, max 8)
   const stopWords = new Set(["the", "and", "for", "that", "with", "this", "from", "are", "was", "were", "been", "have", "has", "had", "not", "but", "what", "all", "can", "her", "his", "one", "our", "out", "you", "use", "using", "based", "method", "system", "device", "apparatus"]);
   const keywords = [...new Set(
-    text.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter(w => w.length > 3 && !stopWords.has(w))
+    correctedText.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter(w => w.length > 3 && !stopWords.has(w))
   )].slice(0, 8);
 
   if (keywords.length === 0) return [];

@@ -64,10 +64,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     try {
       relatedPatents = isBigQueryConfigured()
         ? await vectorSearchByText(text, radius)
-        : searchCachedPatents(text, radius);
+        : await searchCachedPatents(text, radius);
     } catch {
       console.warn("[analyze-upload] BigQuery vector search failed, using cached patents");
-      relatedPatents = searchCachedPatents(text, radius);
+      relatedPatents = await searchCachedPatents(text, radius);
     }
 
     // Derive category from majority of results

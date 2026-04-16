@@ -15,7 +15,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     // Search cached patents locally (zero BigQuery cost)
     const searchQuery = interpretation?.correctedQuery ?? query;
-    const patents = searchCachedPatents(searchQuery, limit);
+    const patents = await searchCachedPatents(searchQuery, limit);
 
     return NextResponse.json<SearchResponse>({
       patents,

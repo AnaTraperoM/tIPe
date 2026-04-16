@@ -21,6 +21,32 @@ function parseJSON<T>(text: string, fallback: T): T {
   }
 }
 
+// ─── Helper: fix typos/grammar before keyword extraction ─────────────────────
+/** Use Haiku to correct spelling and grammar in user input so keyword matching
+ *  doesn't fail on typos. Returns the original text if Anthropic is unavailable. */
+export async function correctGrammar(text: string): Promise<string> {
+  if (!isAnthropicConfigured()) return text;
+  try {
+    const message = await getClient().messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 1024,
+      messages: [{
+        role: "user",
+        content: `Fix any spelling and grammar errors in the following text. Return ONLY the corrected text, nothing else. Do not change the meaning, add words, or rephrase — just fix typos and spelling.\n\n${text.slice(0, 4000)}`,
+      }],
+    });
+    const corrected = message.content[0].type === "text" ? message.content[0].text.trim() : text;
+    if (corrected.length > 0) {
+      console.log(`[correctGrammar] "${text.slice(0, 60)}..." → "${corrected.slice(0, 60)}..."`);
+      return corrected;
+    }
+    return text;
+  } catch (err) {
+    console.warn("[correctGrammar] Haiku call failed, using original text:", err);
+    return text;
+  }
+}
+
 // ─── Helper: keyword extraction from text ───────────────────────────────────
 function extractKeywords(text: string): string[] {
   const stops = new Set(["the","a","an","and","or","but","in","on","at","to","for","of","with","by","from","is","are","was","were","be","been","being","have","has","had","do","does","did","will","would","could","should","may","might","shall","can","that","this","these","those","it","its","not","no","nor","as","such","than","also","each","which","their","them","they","there","then","so","if","when","what","how","all","any","both","other","into","through","during","before","after","above","below","between","about","up","out","over","under","more","most","some","one","two","first","second","new","used","use","using","based","method","system","device","apparatus","comprising","includes","including","according","wherein","configured"]);
@@ -195,7 +221,7 @@ ${patent.assignee ? `Assignee: ${patent.assignee}` : ""}
 Abstract: ${patent.abstract ?? "Not available"}`;
 
   const message = await getClient().messages.create({
-    model: "claude-opus-4-6",
+    model: "claude-sonnet-4-6",
     max_tokens: 512,
     messages: [{ role: "user", content: prompt }],
   });
@@ -283,7 +309,7 @@ Patents:
 ${patentList}`;
 
   const message = await getClient().messages.create({
-    model: "claude-opus-4-6",
+    model: "claude-sonnet-4-6",
     max_tokens: 1024,
     messages: [{ role: "user", content: prompt }],
   });
@@ -402,7 +428,7 @@ Available patent IDs (select the most relevant):
 ${patentSamples}`;
 
   const message = await getClient().messages.create({
-    model: "claude-opus-4-6",
+    model: "claude-sonnet-4-6",
     max_tokens: 1200,
     messages: [{ role: "user", content: prompt }],
   });
@@ -534,7 +560,7 @@ Patents selected:
 ${patentList}${patents.length > 40 ? `\n...and ${patents.length - 40} more patents in this cluster` : ""}`;
 
   const message = await getClient().messages.create({
-    model: "claude-opus-4-6",
+    model: "claude-sonnet-4-6",
     max_tokens: 1500,
     messages: [{ role: "user", content: prompt }],
   });
@@ -779,7 +805,7 @@ Sort claims by relevance (highest overlap first). Include up to 10 claims and up
 
   try {
     const message = await getClient().messages.create({
-      model: "claude-opus-4-6",
+      model: "claude-sonnet-4-6",
       max_tokens: 4096,
       messages: [{ role: "user", content: prompt }],
     });
@@ -1045,7 +1071,7 @@ Respond with valid JSON only (no markdown fences):
 }`;
 
   const message = await getClient().messages.create({
-    model: "claude-opus-4-6",
+    model: "claude-sonnet-4-6",
     max_tokens: 4096,
     messages: [{ role: "user", content: prompt }],
   });
