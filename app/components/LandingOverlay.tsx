@@ -8,29 +8,53 @@ interface Props {
   onExploreClick: () => void;
 }
 
+const gridStyle: React.CSSProperties = {
+  position: "absolute",
+  left: 0,
+  right: 0,
+  height: 340,
+  pointerEvents: "none",
+  backgroundImage: [
+    // Intersection dots — at grid line crossings (corners of squares)
+    "radial-gradient(circle, rgba(132,177,242,0.5) 1.5px, transparent 1.5px)",
+    // Vertical solid thin lines
+    "linear-gradient(90deg, rgba(132,177,242,0.18) 1px, transparent 1px)",
+    // Horizontal solid thin lines
+    "linear-gradient(0deg, rgba(132,177,242,0.18) 1px, transparent 1px)",
+  ].join(", "),
+  backgroundSize: "80px 80px, 80px 80px, 80px 80px",
+  backgroundPosition: "-40px -40px, 0 0, 0 0",
+};
+
 export default function LandingOverlay({ onIdeaClick, onExploreClick }: Props) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
+      className="fixed inset-0 z-50 overflow-y-auto"
       style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(16px)" }}
     >
-      <div className="flex flex-col items-center gap-10">
-        <div className="flex flex-col items-center gap-6">
-          <div className="flex items-center gap-3">
-            <Logo size={56} />
-            <span className="text-4xl font-semibold tracking-wide" style={{ color: "var(--foreground)" }}>
+      {/* Grid overlay — top */}
+      <div style={{ ...gridStyle, top: 0, maskImage: "linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 100%)", WebkitMaskImage: "linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 100%)" }} />
+      {/* Grid overlay — bottom */}
+      <div style={{ ...gridStyle, bottom: 0, maskImage: "linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 100%)", WebkitMaskImage: "linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 100%)" }} />
+
+      <div className="min-h-full flex items-center justify-center py-12 px-8 relative">
+      <div className="flex flex-col items-center gap-10" style={{ maxWidth: "90vw" }}>
+        <div className="flex flex-col items-center gap-5">
+          <div className="flex items-center gap-4">
+            <Logo size={72} />
+            <span style={{ color: "var(--foreground)", fontSize: "3.5rem", fontWeight: 600, letterSpacing: "0.05em" }}>
               t<span style={{ color: "var(--foreground)" }}>IP</span>e
             </span>
           </div>
           <div className="text-center">
             <h1
-              className="text-4xl font-bold tracking-tight mb-3"
-              style={{ color: "var(--foreground)" }}
+              className="tracking-tight mb-4"
+              style={{ color: "var(--foreground)", fontSize: "3.75rem", lineHeight: 1.1, fontWeight: 400 }}
             >
-              What would you like to do?
+              Start with your idea
             </h1>
-            <p className="text-base" style={{ color: "var(--muted)" }}>
-              Choose a workflow to get started
+            <p style={{ color: "var(--muted)", fontSize: "2rem", lineHeight: 1.4 }}>
+              or explore what&apos;s already out there
             </p>
           </div>
         </div>
@@ -42,7 +66,7 @@ export default function LandingOverlay({ onIdeaClick, onExploreClick }: Props) {
             style={{
               background: "var(--surface)",
               border: "1px solid var(--border)",
-              width: 240,
+              minWidth: 300,
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.borderColor = "rgba(255,255,255,0.25)";
@@ -56,8 +80,8 @@ export default function LandingOverlay({ onIdeaClick, onExploreClick }: Props) {
             <Lightbulb size={36} strokeWidth={1.5} style={{ color: "var(--accent)" }} />
             <div className="text-center">
               <div
-                className="text-lg font-semibold mb-1"
-                style={{ color: "var(--foreground)" }}
+                className="mb-1"
+                style={{ fontSize: "2.25rem", color: "var(--foreground)", fontWeight: 400, whiteSpace: "nowrap" }}
               >
                 I have an idea
               </div>
@@ -73,7 +97,7 @@ export default function LandingOverlay({ onIdeaClick, onExploreClick }: Props) {
             style={{
               background: "var(--surface)",
               border: "1px solid var(--border)",
-              width: 240,
+              minWidth: 300,
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.borderColor = "rgba(255,255,255,0.25)";
@@ -87,17 +111,18 @@ export default function LandingOverlay({ onIdeaClick, onExploreClick }: Props) {
             <Radar size={36} strokeWidth={1.5} style={{ color: "var(--accent)" }} />
             <div className="text-center">
               <div
-                className="text-lg font-semibold mb-1"
-                style={{ color: "var(--foreground)" }}
+                className="mb-1"
+                style={{ fontSize: "2.25rem", color: "var(--foreground)", fontWeight: 400, whiteSpace: "nowrap" }}
               >
                 Explore patents
               </div>
               <div className="text-sm" style={{ color: "var(--muted)" }}>
-                Browse clusters, compare, and create new ideas
+                Browse patents, compare and combine for new ideas
               </div>
             </div>
           </button>
         </div>
+      </div>
       </div>
     </div>
   );

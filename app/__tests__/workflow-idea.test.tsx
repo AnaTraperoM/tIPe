@@ -14,7 +14,7 @@ describe("LandingOverlay", () => {
     const onExplore = vi.fn();
     render(<LandingOverlay onIdeaClick={onIdea} onExploreClick={onExplore} />);
 
-    expect(screen.getByText("What would you like to do?")).toBeInTheDocument();
+    expect(screen.getByText("Start with your idea")).toBeInTheDocument();
     expect(screen.getByText("I have an idea")).toBeInTheDocument();
     expect(screen.getByText("Explore patents")).toBeInTheDocument();
   });
