@@ -27,6 +27,7 @@ import type {
 } from "./lib/types";
 import { CATEGORY_COLORS } from "./lib/mock-data";
 import { computeCoordinates } from "./lib/embeddings";
+import { enrichPatent, findSimilarPatents } from "./lib/patent-enrich";
 
 export default function Home() {
   // Patent data
@@ -279,7 +280,7 @@ export default function Home() {
           // Recompute coordinates client-side from current cluster layout
           const withCoords = data.patents.map(p => {
             const coords = computeCoordinates(p.category, p.id);
-            return { ...p, x: coords.x, y: coords.y };
+            return enrichPatent({ ...p, x: coords.x, y: coords.y });
           });
           setPatents(withCoords);
           setDataSource("bigquery");
@@ -571,11 +572,9 @@ export default function Home() {
   return (
     <div className="flex flex-col h-full">
       <Header
-        onSearch={handleSearch}
-        searching={searching}
-        resultCount={visiblePatents.length}
-        mock={searchMock}
-        dataSource={dataSource}
+        workflow={workflow}
+        onIdeaClick={() => setWorkflow("idea")}
+        onExploreClick={() => setWorkflow("explore")}
       />
       <div className="flex flex-1 overflow-hidden">
         {/* Left panel — shows for "I Have an Idea" and "Plug & Create" workflows */}
@@ -652,6 +651,7 @@ export default function Home() {
             onCompareMode={() => { setDrawerOpen(true); setSidebarTab("compare"); }}
             onPlugCreate={() => { setWorkflow("plug-create"); setPlugCreatePatents(new Map()); setPlugCreateResult(null); }}
             onMainMenu={handleGoToMainMenu}
+            allPatents={patents}
           />
         )}
 

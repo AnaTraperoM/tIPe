@@ -44,7 +44,9 @@ export default function IdeaInputPanel({ onSubmit, onClose, onMainMenu }: Props)
     [handleFileSelect]
   );
 
-  const canSubmit = brief.trim().length > 0 && (tab === "text" ? textContent.trim().length > 0 : !!file);
+  const canSubmit = tab === "text"
+    ? textContent.trim().length > 0
+    : brief.trim().length > 0 && !!file;
 
   const handleCheckLandscape = () => {
     if (!canSubmit) return;
@@ -55,7 +57,7 @@ export default function IdeaInputPanel({ onSubmit, onClose, onMainMenu }: Props)
     onSubmit({
       type: tab,
       content: tab === "text" ? textContent : file?.name ?? "",
-      brief,
+      brief: tab === "text" ? textContent.slice(0, 200) : brief,
       file: file ?? undefined,
     });
   };
@@ -76,24 +78,24 @@ export default function IdeaInputPanel({ onSubmit, onClose, onMainMenu }: Props)
     >
       {/* Header */}
       <div
-        className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0"
+        className="flex items-center justify-between px-6 py-5 border-b flex-shrink-0"
         style={{ borderColor: "var(--border)" }}
       >
         <div>
           <h2
-            className="text-sm font-semibold"
+            className="text-lg font-semibold"
             style={{ color: "var(--foreground)" }}
           >
             Describe your innovation
           </h2>
-          <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
+          <p className="text-sm mt-0.5" style={{ color: "var(--muted)" }}>
             We&apos;ll check it against the patent landscape
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={onMainMenu}
-            className="text-xs px-3 py-1.5 rounded transition-colors hover:opacity-80"
+            className="text-xs px-3 py-1.5 rounded-lg transition-colors hover:opacity-80"
             style={{
               background: "var(--surface-2)",
               border: "1px solid var(--border)",
@@ -104,7 +106,7 @@ export default function IdeaInputPanel({ onSubmit, onClose, onMainMenu }: Props)
           </button>
           <button
             onClick={onClose}
-            className="p-1.5 rounded transition-colors hover:bg-white/5"
+            className="p-1.5 rounded-lg transition-colors hover:bg-white/5"
             style={{ color: "var(--muted)" }}
           >
             <X size={16} />
@@ -116,12 +118,12 @@ export default function IdeaInputPanel({ onSubmit, onClose, onMainMenu }: Props)
         {!showConfig ? (
           <div className="flex flex-col gap-5 max-w-2xl">
             {/* Tab selector */}
-            <div className="flex gap-1 p-1 rounded" style={{ background: "var(--surface-2)" }}>
+            <div className="flex gap-1 p-1 rounded-xl" style={{ background: "var(--surface-2)" }}>
               {tabs.map((t) => (
                 <button
                   key={t.key}
                   onClick={() => { setTab(t.key); setFile(null); }}
-                  className="flex items-center gap-1.5 flex-1 py-2 px-3 rounded text-xs font-medium transition-colors"
+                  className="flex items-center gap-1.5 flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-colors"
                   style={{
                     background: tab === t.key ? "var(--surface)" : "transparent",
                     color: tab === t.key ? "var(--foreground)" : "var(--muted)",
@@ -138,7 +140,7 @@ export default function IdeaInputPanel({ onSubmit, onClose, onMainMenu }: Props)
             {tab === "text" && (
               <div>
                 <label
-                  className="text-xs font-medium block mb-1.5"
+                  className="text-sm font-medium block mb-1.5"
                   style={{ color: "var(--muted)" }}
                 >
                   Describe your idea in detail
@@ -147,12 +149,12 @@ export default function IdeaInputPanel({ onSubmit, onClose, onMainMenu }: Props)
                   value={textContent}
                   onChange={(e) => setTextContent(e.target.value)}
                   placeholder="Describe your innovation in as much detail as possible. Include the technical approach, key components, and what makes it different from existing solutions..."
-                  className="w-full rounded text-sm p-4 outline-none resize-none"
+                  className="w-full rounded-xl text-sm p-4 outline-none resize-none"
                   style={{
                     background: "var(--surface-2)",
                     border: "1px solid var(--border)",
                     color: "var(--foreground)",
-                    minHeight: 180,
+                    minHeight: 200,
                     lineHeight: 1.7,
                   }}
                 />
@@ -163,14 +165,14 @@ export default function IdeaInputPanel({ onSubmit, onClose, onMainMenu }: Props)
             {tab === "document" && (
               <div>
                 <label
-                  className="text-xs font-medium block mb-1.5"
+                  className="text-sm font-medium block mb-1.5"
                   style={{ color: "var(--muted)" }}
                 >
                   Upload a patent document
                 </label>
                 {file ? (
                   <div
-                    className="flex items-center gap-3 rounded p-4"
+                    className="flex items-center gap-3 rounded-xl p-4"
                     style={{
                       background: "var(--surface-2)",
                       border: "1px solid var(--border)",
@@ -198,10 +200,10 @@ export default function IdeaInputPanel({ onSubmit, onClose, onMainMenu }: Props)
                     onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                     onDragLeave={() => setDragOver(false)}
                     onDrop={handleDrop}
-                    className="flex flex-col items-center justify-center gap-3 rounded p-8 cursor-pointer transition-colors"
+                    className="flex flex-col items-center justify-center gap-3 rounded-xl p-8 cursor-pointer transition-colors"
                     style={{
                       border: `2px dashed ${dragOver ? "var(--accent)" : "var(--border)"}`,
-                      background: dragOver ? "rgba(232,228,222,0.06)" : "var(--surface-2)",
+                      background: dragOver ? "rgba(255,255,255,0.06)" : "var(--surface-2)",
                     }}
                   >
                     <Upload size={24} style={{ color: "var(--muted)" }} />
@@ -235,14 +237,14 @@ export default function IdeaInputPanel({ onSubmit, onClose, onMainMenu }: Props)
             {tab === "visual" && (
               <div>
                 <label
-                  className="text-xs font-medium block mb-1.5"
+                  className="text-sm font-medium block mb-1.5"
                   style={{ color: "var(--muted)" }}
                 >
                   Upload drawings, diagrams, or photos
                 </label>
                 {file ? (
                   <div
-                    className="flex items-center gap-3 rounded p-4"
+                    className="flex items-center gap-3 rounded-xl p-4"
                     style={{
                       background: "var(--surface-2)",
                       border: "1px solid var(--border)",
@@ -270,10 +272,10 @@ export default function IdeaInputPanel({ onSubmit, onClose, onMainMenu }: Props)
                     onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                     onDragLeave={() => setDragOver(false)}
                     onDrop={handleDrop}
-                    className="flex flex-col items-center justify-center gap-3 rounded p-8 cursor-pointer transition-colors"
+                    className="flex flex-col items-center justify-center gap-3 rounded-xl p-8 cursor-pointer transition-colors"
                     style={{
                       border: `2px dashed ${dragOver ? "var(--accent)" : "var(--border)"}`,
-                      background: dragOver ? "rgba(232,228,222,0.06)" : "var(--surface-2)",
+                      background: dragOver ? "rgba(255,255,255,0.06)" : "var(--surface-2)",
                     }}
                   >
                     <Image size={24} style={{ color: "var(--muted)" }} />
@@ -306,39 +308,41 @@ export default function IdeaInputPanel({ onSubmit, onClose, onMainMenu }: Props)
               </div>
             )}
 
-            {/* Brief description — always required */}
-            <div>
-              <label
-                className="text-xs font-medium block mb-1.5"
-                style={{ color: "var(--muted)" }}
-              >
-                Brief description <span style={{ color: "var(--accent)" }}>*</span>
-              </label>
-              <input
-                type="text"
-                value={brief}
-                onChange={(e) => setBrief(e.target.value)}
-                placeholder="e.g., A food processor with alternating blade speeds for better texture"
-                className="w-full rounded text-sm p-3 outline-none"
-                style={{
-                  background: "var(--surface-2)",
-                  border: "1px solid var(--border)",
-                  color: "var(--foreground)",
-                }}
-              />
-              <p className="text-xs mt-1" style={{ color: "var(--muted)", opacity: 0.6 }}>
-                1-2 sentences summarizing your innovation
-              </p>
-            </div>
+            {/* Brief description — only for document/visual uploads */}
+            {tab !== "text" && (
+              <div>
+                <label
+                  className="text-sm font-medium block mb-1.5"
+                  style={{ color: "var(--muted)" }}
+                >
+                  Brief description <span style={{ color: "var(--accent)" }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  value={brief}
+                  onChange={(e) => setBrief(e.target.value)}
+                  placeholder="e.g., A food processor with alternating blade speeds for better texture"
+                  className="w-full rounded-xl text-sm p-3 outline-none"
+                  style={{
+                    background: "var(--surface-2)",
+                    border: "1px solid var(--border)",
+                    color: "var(--foreground)",
+                  }}
+                />
+                <p className="text-xs mt-1" style={{ color: "var(--muted)", opacity: 0.6 }}>
+                  1-2 sentences summarizing your innovation
+                </p>
+              </div>
+            )}
 
             {/* Submit */}
             <button
               onClick={handleCheckLandscape}
               disabled={!canSubmit}
-              className="text-sm font-medium py-3 px-6 rounded transition-opacity"
+              className="text-base font-medium py-3.5 px-8 rounded-xl transition-opacity"
               style={{
                 background: canSubmit ? "var(--accent)" : "var(--surface-2)",
-                color: canSubmit ? "#0a0a0f" : "var(--muted)",
+                color: canSubmit ? "#000000" : "var(--muted)",
                 border: canSubmit ? "none" : "1px solid var(--border)",
                 opacity: canSubmit ? 1 : 0.5,
                 cursor: canSubmit ? "pointer" : "not-allowed",
@@ -351,7 +355,7 @@ export default function IdeaInputPanel({ onSubmit, onClose, onMainMenu }: Props)
           /* Config step — patent count */
           <div className="flex flex-col gap-6 max-w-md">
             <div>
-              <h3 className="text-sm font-semibold mb-1" style={{ color: "var(--foreground)" }}>
+              <h3 className="text-lg font-semibold mb-1" style={{ color: "var(--foreground)" }}>
                 How thorough should the search be?
               </h3>
               <p className="text-xs" style={{ color: "var(--muted)" }}>
@@ -392,7 +396,7 @@ export default function IdeaInputPanel({ onSubmit, onClose, onMainMenu }: Props)
             <div className="flex gap-3">
               <button
                 onClick={() => setShowConfig(false)}
-                className="text-xs py-2.5 px-4 rounded transition-colors hover:opacity-80"
+                className="text-xs py-2.5 px-4 rounded-lg transition-colors hover:opacity-80"
                 style={{
                   background: "var(--surface-2)",
                   border: "1px solid var(--border)",
@@ -403,8 +407,8 @@ export default function IdeaInputPanel({ onSubmit, onClose, onMainMenu }: Props)
               </button>
               <button
                 onClick={handleStartAnalysis}
-                className="flex-1 text-sm font-medium py-2.5 px-6 rounded transition-opacity hover:opacity-90"
-                style={{ background: "var(--accent)", color: "#0a0a0f" }}
+                className="flex-1 text-sm font-medium py-2.5 px-6 rounded-xl transition-opacity hover:opacity-90"
+                style={{ background: "var(--accent)", color: "#000000" }}
               >
                 Start Analysis
               </button>

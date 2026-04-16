@@ -49,7 +49,7 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
       >
         <div className="flex-1 min-w-0">
           <h2
-            className="text-sm font-semibold truncate"
+            className="text-lg font-semibold truncate"
             style={{ color: "var(--foreground)" }}
           >
             {report.brief}
@@ -73,7 +73,7 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
         <div className="flex items-center gap-2 flex-shrink-0 ml-4">
           <button
             onClick={onViewOnMap}
-            className="flex items-center gap-1.5 text-xs py-1.5 px-3 rounded transition-colors hover:opacity-80"
+            className="flex items-center gap-1.5 text-xs py-1.5 px-3 rounded-lg transition-colors hover:opacity-80"
             style={{
               background: "var(--surface-2)",
               border: "1px solid var(--border)",
@@ -85,7 +85,7 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
           </button>
           <button
             onClick={handleDownloadPDF}
-            className="flex items-center gap-1.5 text-xs py-1.5 px-3 rounded transition-colors hover:opacity-80"
+            className="flex items-center gap-1.5 text-xs py-1.5 px-3 rounded-lg transition-colors hover:opacity-80"
             style={{
               background: "var(--surface-2)",
               border: "1px solid var(--border)",
@@ -97,7 +97,7 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
           </button>
           <button
             onClick={onMainMenu}
-            className="flex items-center gap-1.5 text-xs py-1.5 px-3 rounded transition-colors hover:opacity-80"
+            className="flex items-center gap-1.5 text-xs py-1.5 px-3 rounded-lg transition-colors hover:opacity-80"
             style={{
               background: "var(--surface-2)",
               border: "1px solid var(--border)",
@@ -111,25 +111,25 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
       </div>
 
       {/* Scrollable report body */}
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="flex flex-col gap-8 max-w-3xl">
+      <div className="flex-1 overflow-y-auto p-8">
+        <div className="flex flex-col gap-10 max-w-3xl">
           {/* B. White Space Analysis */}
           <section>
             <div
-              className="text-xs font-semibold uppercase tracking-wider mb-3"
-              style={{ color: "var(--accent)" }}
+              className="text-sm font-semibold uppercase tracking-wider mb-3"
+              style={{ color: "var(--muted)" }}
             >
               B. White Space Analysis
             </div>
             <div
-              className="rounded-lg p-5"
+              className="rounded-2xl p-6"
               style={{
                 background: "rgba(82,201,139,0.06)",
                 border: "1px solid rgba(82,201,139,0.2)",
               }}
             >
               <h3
-                className="text-sm font-semibold mb-3"
+                className="text-base font-semibold mb-3"
                 style={{ color: "#52c98b" }}
               >
                 Where your innovation could be novel
@@ -153,7 +153,7 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
                     {report.whiteSpace.gaps.map((gap, i) => (
                       <li
                         key={i}
-                        className="flex gap-2 text-xs leading-relaxed"
+                        className="flex gap-2 text-sm leading-relaxed"
                         style={{ color: "var(--muted)" }}
                       >
                         <span style={{ color: "#52c98b", flexShrink: 0 }}>
@@ -178,7 +178,7 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
                     {report.whiteSpace.suggestedAngles.map((angle, i) => (
                       <li
                         key={i}
-                        className="flex gap-2 text-xs leading-relaxed"
+                        className="flex gap-2 text-sm leading-relaxed"
                         style={{ color: "var(--muted)" }}
                       >
                         <span style={{ color: "var(--accent)", flexShrink: 0 }}>
@@ -196,13 +196,13 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
           {/* C. Innovation Summary */}
           <section>
             <div
-              className="text-xs font-semibold uppercase tracking-wider mb-3"
-              style={{ color: "var(--accent)" }}
+              className="text-sm font-semibold uppercase tracking-wider mb-3"
+              style={{ color: "var(--muted)" }}
             >
               C. Innovation Summary
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs" style={{ borderCollapse: "collapse" }}>
+            <div className="overflow-x-auto rounded-xl overflow-hidden">
+              <table className="w-full text-sm" style={{ borderCollapse: "collapse" }}>
                 <thead>
                   <tr
                     style={{
@@ -210,19 +210,19 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
                     }}
                   >
                     <th
-                      className="text-left py-2 px-3 font-semibold uppercase tracking-wider"
+                      className="text-left py-3 px-4 font-semibold uppercase tracking-wider"
                       style={{ color: "var(--muted)", width: 140 }}
                     >
                       Type
                     </th>
                     <th
-                      className="text-left py-2 px-3 font-semibold uppercase tracking-wider"
+                      className="text-left py-3 px-4 font-semibold uppercase tracking-wider"
                       style={{ color: "var(--muted)" }}
                     >
                       Description
                     </th>
                     <th
-                      className="text-left py-2 px-3 font-semibold uppercase tracking-wider"
+                      className="text-left py-3 px-4 font-semibold uppercase tracking-wider"
                       style={{ color: "var(--muted)", width: 180 }}
                     >
                       Keywords
@@ -236,18 +236,18 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
                       style={{ borderBottom: "1px solid var(--border)" }}
                     >
                       <td
-                        className="py-2.5 px-3 font-medium"
+                        className="py-3 px-4 font-medium"
                         style={{ color: "var(--foreground)" }}
                       >
                         {f.type}
                       </td>
                       <td
-                        className="py-2.5 px-3"
+                        className="py-3 px-4"
                         style={{ color: "var(--muted)" }}
                       >
                         {f.description}
                       </td>
-                      <td className="py-2.5 px-3">
+                      <td className="py-3 px-4">
                         <div className="flex flex-wrap gap-1">
                           {f.keywords.map((kw) => (
                             <span
@@ -274,31 +274,31 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
           {/* D. Patent Landscape Overview */}
           <section>
             <div
-              className="text-xs font-semibold uppercase tracking-wider mb-3"
-              style={{ color: "var(--accent)" }}
+              className="text-sm font-semibold uppercase tracking-wider mb-3"
+              style={{ color: "var(--muted)" }}
             >
               D. Patent Landscape Overview
             </div>
             <div className="grid grid-cols-3 gap-3 mb-4">
               <div
-                className="rounded p-3"
+                className="rounded-xl p-3"
                 style={{
                   background: "var(--surface-2)",
                   border: "1px solid var(--border)",
                 }}
               >
                 <div
-                  className="text-lg font-bold tabular-nums"
+                  className="text-2xl font-bold tabular-nums"
                   style={{ color: "var(--foreground)" }}
                 >
                   {report.landscape.totalAnalyzed}
                 </div>
-                <div className="text-xs" style={{ color: "var(--muted)" }}>
+                <div className="text-sm" style={{ color: "var(--muted)" }}>
                   Patents analyzed
                 </div>
               </div>
               <div
-                className="rounded p-3"
+                className="rounded-xl p-3"
                 style={{
                   background: "var(--surface-2)",
                   border: "1px solid var(--border)",
@@ -307,50 +307,50 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
                 <div className="flex gap-3">
                   <div>
                     <span
-                      className="text-lg font-bold tabular-nums"
+                      className="text-2xl font-bold tabular-nums"
                       style={{ color: "#fca5a5" }}
                     >
                       {report.landscape.highRelevance}
                     </span>
-                    <span className="text-xs ml-1" style={{ color: "var(--muted)" }}>
+                    <span className="text-sm ml-1" style={{ color: "var(--muted)" }}>
                       high
                     </span>
                   </div>
                   <div>
                     <span
-                      className="text-lg font-bold tabular-nums"
+                      className="text-2xl font-bold tabular-nums"
                       style={{ color: "#E8D44D" }}
                     >
                       {report.landscape.mediumRelevance}
                     </span>
-                    <span className="text-xs ml-1" style={{ color: "var(--muted)" }}>
+                    <span className="text-sm ml-1" style={{ color: "var(--muted)" }}>
                       med
                     </span>
                   </div>
                   <div>
                     <span
-                      className="text-lg font-bold tabular-nums"
+                      className="text-2xl font-bold tabular-nums"
                       style={{ color: "#52c98b" }}
                     >
                       {report.landscape.lowRelevance}
                     </span>
-                    <span className="text-xs ml-1" style={{ color: "var(--muted)" }}>
+                    <span className="text-sm ml-1" style={{ color: "var(--muted)" }}>
                       low
                     </span>
                   </div>
                 </div>
-                <div className="text-xs mt-1" style={{ color: "var(--muted)" }}>
+                <div className="text-sm mt-1" style={{ color: "var(--muted)" }}>
                   Relevance distribution
                 </div>
               </div>
               <div
-                className="rounded p-3"
+                className="rounded-xl p-3"
                 style={{
                   background: "var(--surface-2)",
                   border: "1px solid var(--border)",
                 }}
               >
-                <div className="text-xs" style={{ color: "var(--muted)" }}>
+                <div className="text-sm" style={{ color: "var(--muted)" }}>
                   Top assignees
                 </div>
                 <div className="flex flex-col gap-1 mt-1">
@@ -381,8 +381,8 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
           {/* E. Key Claims Analysis */}
           <section>
             <div
-              className="text-xs font-semibold uppercase tracking-wider mb-3"
-              style={{ color: "var(--accent)" }}
+              className="text-sm font-semibold uppercase tracking-wider mb-3"
+              style={{ color: "var(--muted)" }}
             >
               E. Key Claims Analysis
             </div>
@@ -396,7 +396,7 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
                 return (
                   <div
                     key={i}
-                    className="rounded-lg p-4"
+                    className="rounded-xl p-5"
                     style={{
                       background: overlap.bg,
                       border: `1px solid ${overlap.text}33`,
@@ -404,7 +404,7 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
                   >
                     <div className="flex items-center gap-2 mb-2">
                       <span
-                        className="text-xs font-semibold px-2 py-0.5 rounded"
+                        className="text-xs font-semibold px-2 py-0.5 rounded-full"
                         style={{ background: overlap.bg, color: overlap.text }}
                       >
                         {overlap.label}
@@ -416,7 +416,7 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
                     >
                       Claim {claim.claimNumber} &mdash; {claim.patentId}{" "}
                       <span
-                        className="px-1.5 py-0.5 rounded ml-1"
+                        className="px-1.5 py-0.5 rounded-full ml-1"
                         style={{
                           background: status.bg,
                           color: status.text,
@@ -455,20 +455,20 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
           {/* F. Patent List Table */}
           <section>
             <div
-              className="text-xs font-semibold uppercase tracking-wider mb-3"
-              style={{ color: "var(--accent)" }}
+              className="text-sm font-semibold uppercase tracking-wider mb-3"
+              style={{ color: "var(--muted)" }}
             >
               F. Patent List
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs" style={{ borderCollapse: "collapse" }}>
+            <div className="overflow-x-auto rounded-xl overflow-hidden">
+              <table className="w-full text-sm" style={{ borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ borderBottom: "1px solid var(--border)" }}>
                     {["#", "Patent ID", "Title", "Status", "Assignee", "Relevance", "Year"].map(
                       (h) => (
                         <th
                           key={h}
-                          className="text-left py-2 px-2 font-semibold uppercase tracking-wider"
+                          className="text-left py-3 px-4 font-semibold uppercase tracking-wider"
                           style={{ color: "var(--muted)" }}
                         >
                           {h}
@@ -486,19 +486,19 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
                         style={{ borderBottom: "1px solid var(--border)" }}
                       >
                         <td
-                          className="py-2 px-2 tabular-nums"
+                          className="py-3 px-4 tabular-nums"
                           style={{ color: "var(--muted)" }}
                         >
                           {i + 1}
                         </td>
                         <td
-                          className="py-2 px-2 font-mono"
+                          className="py-3 px-4 font-mono"
                           style={{ color: "var(--accent-light)" }}
                         >
                           {p.patentId}
                         </td>
                         <td
-                          className="py-2 px-2"
+                          className="py-3 px-4"
                           style={{
                             color: "var(--foreground)",
                             maxWidth: 200,
@@ -506,9 +506,9 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
                         >
                           <span className="truncate block">{p.title}</span>
                         </td>
-                        <td className="py-2 px-2">
+                        <td className="py-3 px-4">
                           <span
-                            className="px-1.5 py-0.5 rounded"
+                            className="px-1.5 py-0.5 rounded-full"
                             style={{
                               background: status.bg,
                               color: status.text,
@@ -519,12 +519,12 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
                           </span>
                         </td>
                         <td
-                          className="py-2 px-2"
+                          className="py-3 px-4"
                           style={{ color: "var(--muted)" }}
                         >
                           {p.assignee}
                         </td>
-                        <td className="py-2 px-2">
+                        <td className="py-3 px-4">
                           <span
                             style={{
                               color: RELEVANCE_COLORS[p.relevance] ?? "var(--muted)",
@@ -535,7 +535,7 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
                           </span>
                         </td>
                         <td
-                          className="py-2 px-2 tabular-nums"
+                          className="py-3 px-4 tabular-nums"
                           style={{ color: "var(--muted)" }}
                         >
                           {p.year}
