@@ -777,26 +777,30 @@ Respond with valid JSON only (no markdown fences). Be thorough and specific:
 
 Sort claims by relevance (highest overlap first). Include up to 10 claims and up to ${patentCount} patents.`;
 
-  const message = await getClient().messages.create({
-    model: "claude-opus-4-6",
-    max_tokens: 4096,
-    messages: [{ role: "user", content: prompt }],
-  });
+  try {
+    const message = await getClient().messages.create({
+      model: "claude-opus-4-6",
+      max_tokens: 4096,
+      messages: [{ role: "user", content: prompt }],
+    });
 
-  const text = message.content[0].type === "text" ? message.content[0].text : "";
-  const parsed = parseJSON(text, null);
+    const text = message.content[0].type === "text" ? message.content[0].text : "";
+    const parsed = parseJSON(text, null);
 
-  if (parsed && typeof parsed === "object") {
-    const p = parsed as Record<string, unknown>;
-    return {
-      brief,
-      timestamp: new Date().toISOString(),
-      whiteSpace: (p.whiteSpace as FTOReport["whiteSpace"]) ?? { summary: "", gaps: [], suggestedAngles: [] },
-      features: (p.features as FTOReport["features"]) ?? [],
-      landscape: (p.landscape as FTOReport["landscape"]) ?? { totalAnalyzed: 0, highRelevance: 0, mediumRelevance: 0, lowRelevance: 0, topAssignees: [] },
-      claims: (p.claims as FTOReport["claims"]) ?? [],
-      patents: (p.patents as FTOReport["patents"]) ?? [],
-    };
+    if (parsed && typeof parsed === "object") {
+      const p = parsed as Record<string, unknown>;
+      return {
+        brief,
+        timestamp: new Date().toISOString(),
+        whiteSpace: (p.whiteSpace as FTOReport["whiteSpace"]) ?? { summary: "", gaps: [], suggestedAngles: [] },
+        features: (p.features as FTOReport["features"]) ?? [],
+        landscape: (p.landscape as FTOReport["landscape"]) ?? { totalAnalyzed: 0, highRelevance: 0, mediumRelevance: 0, lowRelevance: 0, topAssignees: [] },
+        claims: (p.claims as FTOReport["claims"]) ?? [],
+        patents: (p.patents as FTOReport["patents"]) ?? [],
+      };
+    }
+  } catch (err) {
+    console.error("[analyzeFTO] Claude API call failed, using local fallback:", err);
   }
 
   return buildLocalFTOReport(brief, content, allPatents, patentCount);
