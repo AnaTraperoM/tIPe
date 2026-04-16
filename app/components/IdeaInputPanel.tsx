@@ -6,7 +6,7 @@ import { Upload, FileText, Image, X, Type } from "lucide-react";
 type InputTab = "text" | "document" | "visual";
 
 interface Props {
-  onSubmit: (data: { type: InputTab; content: string; brief: string; file?: File }) => void;
+  onSubmit: (data: { type: InputTab; content: string; brief: string; file?: File; patentCount: number }) => void;
   onClose: () => void;
   onMainMenu: () => void;
 }
@@ -61,6 +61,7 @@ export default function IdeaInputPanel({ onSubmit, onClose, onMainMenu }: Props)
       content: tab === "text" ? textContent : file?.name ?? "",
       brief: tab === "text" ? textContent.slice(0, 200) : tab === "visual" ? brief : (file?.name ?? ""),
       file: file ?? undefined,
+      patentCount,
     });
   };
 
