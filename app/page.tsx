@@ -730,6 +730,21 @@ export default function Home() {
                 onClose={handleCloseCompare}
               />
             )}
+            {/* Floating Refresh button when a patent is selected */}
+            {selected && (
+              <button
+                onClick={handleClearSelected}
+                className="absolute bottom-4 right-4 z-40 flex items-center gap-1.5 text-xs font-medium py-2 px-4 rounded-lg transition-opacity hover:opacity-90 shadow-lg"
+                style={{
+                  background: "rgba(132,177,242,0.15)",
+                  border: "1px solid rgba(132,177,242,0.3)",
+                  color: "#84B1F2",
+                  backdropFilter: "blur(8px)",
+                }}
+              >
+                Refresh
+              </button>
+            )}
           </div>
           <DatasetPanel
             yearRange={yearRange}
