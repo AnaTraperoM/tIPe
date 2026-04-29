@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { Search, X, ChevronRight, Layers, Building2, ScrollText, Sparkles, Zap, MousePointer } from "lucide-react";
 import type { Patent, TranslationResult, GroupSummaryResult, QueryInterpretation, PlugCreateResult } from "@/app/lib/types";
 import { findSimilarPatents } from "@/app/lib/patent-enrich";
@@ -74,6 +74,32 @@ export default function Sidebar({
   conceptExplanation,
   conceptMatchCount,
 }: Props) {
+  const [sidebarWidth, setSidebarWidth] = useState(380);
+  const isDragging = useRef(false);
+
+  const handleDragResize = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDragging.current = true;
+    const startX = e.clientX;
+    const startWidth = sidebarWidth;
+    const onMove = (ev: MouseEvent) => {
+      if (!isDragging.current) return;
+      const delta = ev.clientX - startX;
+      setSidebarWidth(Math.min(800, Math.max(280, startWidth + delta)));
+    };
+    const onUp = () => {
+      isDragging.current = false;
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }, [sidebarWidth]);
+
   const uniqueCategories = useMemo(
     () => [...new Set(groupSelection.map(p => p.category))],
     [groupSelection]
@@ -140,15 +166,20 @@ export default function Sidebar({
 
       {/* Drawer */}
       <aside
-        className="fixed top-16 left-0 flex flex-col z-40"
+        className="fixed top-16 left-0 flex z-40"
         style={{
-          width: 380,
+          width: sidebarWidth,
           height: "calc(100vh - 64px)",
+          transform: open ? "translateX(0)" : "translateX(-100%)",
+          transition: isDragging.current ? "none" : "transform 300ms cubic-bezier(0.4,0,0.2,1)",
+          boxShadow: open ? "4px 0 40px rgba(0,0,0,0.5)" : "none",
+        }}
+      >
+      <div
+        className="flex-1 flex flex-col overflow-hidden"
+        style={{
           background: "var(--surface)",
           borderRight: "1px solid var(--border)",
-          transform: open ? "translateX(0)" : "translateX(-100%)",
-          transition: "transform 300ms cubic-bezier(0.4,0,0.2,1)",
-          boxShadow: open ? "4px 0 40px rgba(0,0,0,0.5)" : "none",
         }}
       >
       {/* Tab bar + close */}
@@ -845,6 +876,22 @@ export default function Sidebar({
             )}
           </div>
         )}
+      </div>
+      </div>
+      {/* Drag handle */}
+      <div
+        onMouseDown={handleDragResize}
+        className="flex-shrink-0 flex items-center justify-center"
+        style={{
+          width: 6,
+          cursor: "col-resize",
+          background: "var(--border)",
+          transition: "background 0.15s",
+        }}
+        onMouseEnter={e => (e.currentTarget.style.background = "#84B1F2")}
+        onMouseLeave={e => (e.currentTarget.style.background = "var(--border)")}
+      >
+        <div style={{ width: 2, height: 32, borderRadius: 1, background: "var(--muted)", opacity: 0.4 }} />
       </div>
     </aside>
     </>
