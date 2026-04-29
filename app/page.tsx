@@ -463,17 +463,26 @@ export default function Home() {
     const timeout = setTimeout(() => controller.abort(), 120000); // 2 min timeout
 
     try {
-      let content = data.content;
+      let res: Response;
       if (data.file) {
-        content = `[Uploaded file: ${data.file.name}] ${data.brief}`;
+        // Send file as FormData so the API can extract text from PDF/DOCX/images
+        const formData = new FormData();
+        formData.append("file", data.file);
+        formData.append("brief", data.brief);
+        formData.append("patentCount", String(data.patentCount));
+        res = await fetch("/api/ai/fto-analyze", {
+          method: "POST",
+          body: formData,
+          signal: controller.signal,
+        });
+      } else {
+        res = await fetch("/api/ai/fto-analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ brief: data.brief, content: data.content, patentCount: data.patentCount }),
+          signal: controller.signal,
+        });
       }
-
-      const res = await fetch("/api/ai/fto-analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ brief: data.brief, content, patentCount: data.patentCount }),
-        signal: controller.signal,
-      });
       if (!res.ok) throw new Error("FTO analysis failed");
       const report: FTOReport = await res.json();
       setFtoReport(report);
