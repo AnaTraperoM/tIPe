@@ -593,6 +593,32 @@ export default function Home() {
   const showReportPanel = workflow === "idea" && ftoReport && !ftoLoading;
   const showLeftPanel = showIdeaPanel || showProgressPanel || showReportPanel;
 
+  // Resizable left panel
+  const [panelWidth, setPanelWidth] = useState(75); // vw
+  const isDragging = useRef(false);
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDragging.current = true;
+    const startX = e.clientX;
+    const startWidth = panelWidth;
+    const onMove = (ev: MouseEvent) => {
+      if (!isDragging.current) return;
+      const deltaVw = ((ev.clientX - startX) / window.innerWidth) * 100;
+      setPanelWidth(Math.min(90, Math.max(25, startWidth + deltaVw)));
+    };
+    const onUp = () => {
+      isDragging.current = false;
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }, [panelWidth]);
+
   return (
     <div className="flex flex-col h-full">
       <Header
@@ -603,24 +629,41 @@ export default function Home() {
       <div className="flex flex-1 overflow-hidden">
         {/* Left panel — shows for "I Have an Idea" and "Plug & Create" workflows */}
         {showLeftPanel && (
-          <div style={{ width: "75vw", flexShrink: 0 }}>
-            {showIdeaPanel && (
-              <IdeaInputPanel
-                onSubmit={handleFTOSubmit}
-                onClose={() => setWorkflow("explore")}
-                onMainMenu={handleGoToMainMenu}
-              />
-            )}
-            {showProgressPanel && (
-              <AnalysisProgress steps={ftoProgress} brief={ftoIdeaBrief} onCancel={handleFTOCancel} />
-            )}
-            {showReportPanel && ftoReport && (
-              <LandscapeReport
-                report={ftoReport}
-                onMainMenu={handleGoToMainMenu}
-                onViewOnMap={() => setWorkflow("explore")}
-              />
-            )}
+          <div className="relative flex" style={{ width: `${panelWidth}vw`, flexShrink: 0 }}>
+            <div className="flex-1 overflow-hidden">
+              {showIdeaPanel && (
+                <IdeaInputPanel
+                  onSubmit={handleFTOSubmit}
+                  onClose={() => setWorkflow("explore")}
+                  onMainMenu={handleGoToMainMenu}
+                />
+              )}
+              {showProgressPanel && (
+                <AnalysisProgress steps={ftoProgress} brief={ftoIdeaBrief} onCancel={handleFTOCancel} />
+              )}
+              {showReportPanel && ftoReport && (
+                <LandscapeReport
+                  report={ftoReport}
+                  onMainMenu={handleGoToMainMenu}
+                  onViewOnMap={() => setWorkflow("explore")}
+                />
+              )}
+            </div>
+            {/* Drag handle */}
+            <div
+              onMouseDown={handleMouseDown}
+              className="flex-shrink-0 flex items-center justify-center"
+              style={{
+                width: 6,
+                cursor: "col-resize",
+                background: "var(--border)",
+                transition: "background 0.15s",
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = "#84B1F2")}
+              onMouseLeave={e => (e.currentTarget.style.background = "var(--border)")}
+            >
+              <div style={{ width: 2, height: 32, borderRadius: 1, background: "var(--muted)", opacity: 0.4 }} />
+            </div>
           </div>
         )}
 
