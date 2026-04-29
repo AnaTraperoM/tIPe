@@ -260,7 +260,18 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
                         className="py-3 px-4"
                         style={{ color: "var(--muted)" }}
                       >
-                        {f.description}
+                        {f.type === "Potential Claims" ? (
+                          <ul className="flex flex-col gap-1.5 list-none p-0 m-0">
+                            {f.description.split(/\s*(?:\||\bClaim\s*\d+\s*:)\s*/).filter(Boolean).map((claim, ci) => (
+                              <li key={ci} className="flex gap-2 text-sm leading-relaxed">
+                                <span style={{ color: "#84B1F2", flexShrink: 0 }}>&#x25CB;</span>
+                                {claim.trim()}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          f.description
+                        )}
                       </td>
                     </tr>
                   ))}
