@@ -883,34 +883,34 @@ export async function analyzeFTO(
     .map(p => `${p.id}: ${p.title} (${p.year}, ${p.category}, ${p.assignee ?? "Unknown"})\nAbstract: ${(p.abstract ?? "").slice(0, 200)}`)
     .join("\n\n");
 
-  const prompt = `You are a senior patent landscape analyst performing a thorough Freedom-to-Operate style analysis. The user has submitted an innovation idea and you must analyze it against existing patents.
+  const prompt = `You are a patent examiner, not an advisor. Your job is to find reasons to REJECT novelty, not to encourage the applicant. Only what survives your scrutiny gets reported as novel.
 
-IMPORTANT: Think deeply about every aspect. This is a critical analysis that could inform patent filing decisions.
+TASK: Decompose the user's idea into individual technical features. For EACH feature, check whether any provided patent already covers it. Report ONLY features with NO match in the prior art.
 
-User's brief description: "${brief}"
+User's idea: "${brief}"
 
-Detailed description:
+Details:
 ${content.slice(0, 8000)}
 
-Here are patents from our database to analyze against (select the ${patentCount} most relevant):
+Prior art (${relevantPatents.length} patents):
 ${patentSamples}
 
-Respond with valid JSON only (no markdown fences). Be brutally honest — do not flatter the user. If parts of the idea are already well-covered by prior art, say so plainly. Only highlight genuine novelty.
+Respond with valid JSON only (no markdown fences):
 
 {
   "whiteSpace": {
-    "summary": "<2-3 sentences ONLY. Be synthetic: state the ONE core novelty claim in the first sentence, then explain WHY it's novel by contrasting against the closest prior art (cite patent IDs). Be critical: if the idea is largely covered by existing patents, say so and identify only the narrow sliver of potential novelty. Never pad with generic statements like 'this is an active area of research.'>",
+    "summary": "<1-2 sentences MAX. First sentence: state the single strongest novelty claim — the one specific technical combination or method NOT found in any analyzed patent. Second sentence: name the closest blocking patent and what it covers. If the idea has NO genuine novelty over the prior art, say so directly.>",
     "gaps": [
-      "<Each gap must contrast a SPECIFIC element of the user's idea against a SPECIFIC patent. Format: '[Element X] is not addressed by [US-XXXXX] which is the closest match because [reason]. This creates a narrow opening for [specific claim type].' Be critical — if the gap is weak, say so. Provide 3-4 gaps.>"
+      "<Each gap = one specific feature from the user's idea that is genuinely absent from ALL analyzed patents. Format: '[Feature] — not found in [closest patent ID] which covers [what it covers instead]. Novelty strength: [strong/weak/marginal].' Only include features with REAL gaps — omit anything already covered. Max 3 gaps. If fewer exist, return fewer.>"
     ],
     "suggestedAngles": [
-      "<Each angle must be a concrete, defensible patent claim strategy. State the claim type (method/apparatus/system/composition), the specific technical differentiator, and which prior art it designs around. Example: 'Method claim: a process for [X] using [Y technique] applied to [Z domain], designing around the apparatus claims in US-XXXXX which cover [Y] but only in [W domain].' Provide 3 angles.>"
+      "<Only if genuine gaps exist. Format: '[Claim type]: A [method/apparatus/system] for [specific function] comprising [novel element], designing around [patent ID] which claims [what]. Feasibility: [high/medium/low].' Max 2 angles.>"
     ]
   },
   "features": [
-    { "type": "Technical Domain", "description": "<specific domain and sub-domain>" },
-    { "type": "Core Innovation", "description": "<State this as a patentable claim: 'A [method/system/apparatus] for [function] comprising [specific novel elements], wherein [key differentiator from closest prior art]. Unlike [closest patent ID + title], this [specific technical difference].' Do NOT restate the user's description — synthesize what is genuinely new.>" },
-    { "type": "Potential Claims", "description": "<List 2-3 specific independent claim directions that could survive prior art review. Format each as: 'Claim: A [type] comprising [elements] characterized by [novel feature].' Be realistic — only include claims with genuine novelty over the analyzed patents.>" }
+    { "type": "Technical Domain", "description": "<domain and sub-domain>" },
+    { "type": "Core Innovation", "description": "<Write as a patent claim: 'A [method/system/apparatus] for [X] comprising [novel elements], wherein [differentiator vs closest prior art ID].' If no genuine novelty exists, state: 'No novel claim identified — all core features are present in [patent IDs].'>" },
+    { "type": "Potential Claims", "description": "<1-2 independent claim directions ONLY if they have genuine novelty. Format: 'Claim: A [type] comprising [elements] characterized by [novel feature not in prior art].' If none survive scrutiny, state: 'No defensible independent claims identified.'>" }
   ],
   "landscape": {
     "totalAnalyzed": <number>,

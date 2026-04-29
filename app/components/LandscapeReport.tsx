@@ -145,15 +145,15 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
             <div
               className="rounded-2xl p-6"
               style={{
-                background: "rgba(82,201,139,0.06)",
-                border: "1px solid rgba(82,201,139,0.2)",
+                background: "rgba(132,177,242,0.08)",
+                border: "1px solid rgba(132,177,242,0.25)",
               }}
             >
               <h3
                 className="text-base font-semibold mb-3"
-                style={{ color: "#52c98b" }}
+                style={{ color: "#84B1F2" }}
               >
-                Where your innovation could be novel
+                What could be novel
               </h3>
               <p
                 className="text-xs leading-relaxed mb-4"
@@ -177,7 +177,7 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
                         className="flex gap-2 text-sm leading-relaxed"
                         style={{ color: "var(--muted)" }}
                       >
-                        <span style={{ color: "#52c98b", flexShrink: 0 }}>
+                        <span style={{ color: "#84B1F2", flexShrink: 0 }}>
                           &#x25CB;
                         </span>
                         {gap}
