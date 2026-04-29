@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useCallback, useRef } from "react";
 import { X } from "lucide-react";
 import type { Patent, ComparisonResult } from "@/app/lib/types";
 import { CATEGORY_COLORS } from "@/app/lib/mock-data";
@@ -14,16 +15,62 @@ interface Props {
 }
 
 export default function ComparePanel({ patents, result, loading, onCompare, onRemove, onClose }: Props) {
+  const [width, setWidth] = useState(480);
+  const isDragging = useRef(false);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDragging.current = true;
+    const startX = e.clientX;
+    const startWidth = width;
+    const onMove = (ev: MouseEvent) => {
+      if (!isDragging.current) return;
+      const delta = startX - ev.clientX;
+      setWidth(Math.min(900, Math.max(300, startWidth + delta)));
+    };
+    const onUp = () => {
+      isDragging.current = false;
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }, [width]);
+
   return (
     <div
-      className="absolute inset-y-0 right-0 flex flex-col overflow-hidden"
+      className="absolute inset-y-0 right-0 flex overflow-hidden"
       style={{
-        width: 480,
-        background: "var(--surface)",
-        borderLeft: "1px solid var(--border)",
+        width,
         zIndex: 20,
       }}
     >
+      {/* Drag handle */}
+      <div
+        onMouseDown={handleMouseDown}
+        className="flex-shrink-0 flex items-center justify-center"
+        style={{
+          width: 6,
+          cursor: "col-resize",
+          background: "var(--border)",
+          transition: "background 0.15s",
+        }}
+        onMouseEnter={e => (e.currentTarget.style.background = "#84B1F2")}
+        onMouseLeave={e => (e.currentTarget.style.background = "var(--border)")}
+      >
+        <div style={{ width: 2, height: 32, borderRadius: 1, background: "var(--muted)", opacity: 0.4 }} />
+      </div>
+      <div
+        className="flex-1 flex flex-col overflow-hidden"
+        style={{
+          background: "var(--surface)",
+          borderLeft: "1px solid var(--border)",
+        }}
+      >
       {/* Header */}
       <div
         className="flex items-center justify-between px-5 py-4 flex-shrink-0"
@@ -180,6 +227,7 @@ export default function ComparePanel({ patents, result, loading, onCompare, onRe
             )}
           </div>
         )}
+      </div>
       </div>
     </div>
   );
