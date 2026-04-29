@@ -196,6 +196,7 @@ export default function Home() {
       const data: ConceptSearchResult = await res.json();
       setConceptMatches(new Set(data.matchingIds));
       setConceptExplanation(data.explanation);
+      if (data.matchingIds.length > 0) setDrawerOpen(true);
       addHistory({ type: "search", label: `Concept: "${query}" — ${data.matchingIds.length} matches` });
     } catch (err) {
       showError("Concept search failed. Please try again.");
@@ -698,6 +699,8 @@ export default function Home() {
             plugCreateLoading={plugCreateLoading}
             onPlugSearch={handlePlugCreateSearch}
             onPlugReset={() => { setPlugCreateResult(null); setPlugCreatePatents(new Map()); }}
+            conceptExplanation={conceptExplanation}
+            conceptMatchCount={conceptMatches.size}
           />
         )}
 

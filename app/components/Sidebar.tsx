@@ -38,6 +38,8 @@ interface Props {
   plugCreateLoading: boolean;
   onPlugSearch: (query: string) => Patent[];
   onPlugReset?: () => void;
+  conceptExplanation?: string;
+  conceptMatchCount?: number;
 }
 
 export default function Sidebar({
@@ -69,6 +71,8 @@ export default function Sidebar({
   plugCreateLoading,
   onPlugSearch,
   onPlugReset,
+  conceptExplanation,
+  conceptMatchCount,
 }: Props) {
   const uniqueCategories = useMemo(
     () => [...new Set(groupSelection.map(p => p.category))],
@@ -175,6 +179,20 @@ export default function Sidebar({
       </div>
 
       <div className="flex-1 overflow-y-auto p-5">
+        {/* ── Concept Search Summary ── */}
+        {tab === "patent" && conceptExplanation && conceptMatchCount !== undefined && conceptMatchCount > 0 && groupSelection.length === 0 && (
+          <div className="flex flex-col gap-3 mb-4">
+            <div className="rounded-xl p-4 flex flex-col gap-2" style={{ background: "rgba(132,177,242,0.08)", border: "1px solid rgba(132,177,242,0.25)" }}>
+              <div className="text-xs font-semibold" style={{ color: "#84B1F2" }}>
+                Search Results — {conceptMatchCount} patents highlighted
+              </div>
+              <p className="text-xs leading-relaxed" style={{ color: "var(--muted)" }}>
+                {conceptExplanation}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* ── Patent Detail Tab ── */}
         {tab === "patent" && groupSelection.length > 0 && (
           <div className="flex flex-col gap-4">
