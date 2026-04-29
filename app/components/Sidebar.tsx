@@ -37,6 +37,7 @@ interface Props {
   plugCreateResult: PlugCreateResult | null;
   plugCreateLoading: boolean;
   onPlugSearch: (query: string) => Patent[];
+  onPlugReset?: () => void;
 }
 
 export default function Sidebar({
@@ -67,6 +68,7 @@ export default function Sidebar({
   plugCreateResult,
   plugCreateLoading,
   onPlugSearch,
+  onPlugReset,
 }: Props) {
   const uniqueCategories = useMemo(
     () => [...new Set(groupSelection.map(p => p.category))],
@@ -810,6 +812,19 @@ export default function Sidebar({
             >
               Check Patent Landscape &rarr;
             </button>
+            {onPlugReset && (
+              <button
+                onClick={onPlugReset}
+                className="flex items-center justify-center gap-2 text-xs font-medium py-2.5 px-6 rounded-xl transition-opacity hover:opacity-90"
+                style={{
+                  background: "rgba(132,177,242,0.15)",
+                  border: "1px solid rgba(132,177,242,0.3)",
+                  color: "#84B1F2",
+                }}
+              >
+                Start New Combination
+              </button>
+            )}
           </div>
         )}
       </div>

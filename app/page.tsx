@@ -654,6 +654,7 @@ export default function Home() {
             plugCreateResult={plugCreateResult}
             plugCreateLoading={plugCreateLoading}
             onPlugSearch={handlePlugCreateSearch}
+            onPlugReset={() => { setPlugCreateResult(null); setPlugCreatePatents(new Map()); }}
           />
         )}
 

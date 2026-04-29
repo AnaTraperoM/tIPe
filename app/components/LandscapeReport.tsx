@@ -556,6 +556,21 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
               </table>
             </div>
           </section>
+
+          {/* Start New Analysis */}
+          <div className="flex justify-center pt-4 pb-8">
+            <button
+              onClick={onMainMenu}
+              className="flex items-center gap-2 text-sm font-medium py-3 px-8 rounded-xl transition-opacity hover:opacity-90"
+              style={{
+                background: "rgba(132,177,242,0.15)",
+                border: "1px solid rgba(132,177,242,0.3)",
+                color: "#84B1F2",
+              }}
+            >
+              Start New Analysis
+            </button>
+          </div>
         </div>
       </div>
     </div>
