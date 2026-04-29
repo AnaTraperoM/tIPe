@@ -857,7 +857,7 @@ export async function analyzeFTO(
     availableCategories,
   );
 
-  // Step 1: Broad keyword matching to get a candidate pool
+  // Step 1: Broad keyword matching to get a wide candidate pool
   const keywordCandidates = findMatchingPatentsWeighted(
     primary,
     secondary,
@@ -867,17 +867,18 @@ export async function analyzeFTO(
 
   // Pad with patents from the best-fit category if not enough candidates
   const category = suggestedCategories[0] ?? guessCategory(`${brief} ${content}`, allPatents);
-  if (keywordCandidates.length < patentCount * 3) {
+  if (keywordCandidates.length < patentCount * 2) {
     const catPatents = allPatents.filter(p => p.category === category && !keywordCandidates.some(r => r.id === p.id));
-    keywordCandidates.push(...catPatents.slice(0, patentCount * 3 - keywordCandidates.length));
+    keywordCandidates.push(...catPatents.slice(0, patentCount * 2 - keywordCandidates.length));
   }
 
-  // Step 2: Semantic reranking — Haiku reorders by actual conceptual similarity
-  const relevantPatents = await semanticRerank(
+  // Step 2: Semantic reranking narrows pool, then take exactly patentCount
+  const reranked = await semanticRerank(
     `${brief}\n${content}`,
     keywordCandidates,
     Math.min(patentCount * 3, 120),
   );
+  const relevantPatents = reranked.slice(0, patentCount);
 
   const patentSamples = relevantPatents
     .map(p => `${p.id}: ${p.title} (${p.year}, ${p.category}, ${p.assignee ?? "Unknown"})\nAbstract: ${(p.abstract ?? "").slice(0, 200)}`)
@@ -958,14 +959,17 @@ Sort claims by relevance (highest overlap first). Include up to 10 claims and up
     if (parsed && typeof parsed === "object") {
       console.log("[analyzeFTO] Sonnet JSON parsed successfully, using Claude report");
       const p = parsed as Record<string, unknown>;
+      const truncatedPatents = ((p.patents as FTOReport["patents"]) ?? []).slice(0, patentCount);
+      const landscape = (p.landscape as FTOReport["landscape"]) ?? { totalAnalyzed: 0, highRelevance: 0, mediumRelevance: 0, lowRelevance: 0, topAssignees: [] };
+      landscape.totalAnalyzed = truncatedPatents.length;
       return {
         brief,
         timestamp: new Date().toISOString(),
         whiteSpace: (p.whiteSpace as FTOReport["whiteSpace"]) ?? { summary: "", gaps: [], suggestedAngles: [] },
         features: (p.features as FTOReport["features"]) ?? [],
-        landscape: (p.landscape as FTOReport["landscape"]) ?? { totalAnalyzed: 0, highRelevance: 0, mediumRelevance: 0, lowRelevance: 0, topAssignees: [] },
+        landscape,
         claims: (p.claims as FTOReport["claims"]) ?? [],
-        patents: (p.patents as FTOReport["patents"]) ?? [],
+        patents: truncatedPatents,
       };
     }
     console.warn("[analyzeFTO] Sonnet response was not valid JSON, falling back to local report. Raw:", text.slice(0, 500));
