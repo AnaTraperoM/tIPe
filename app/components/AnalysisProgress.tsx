@@ -18,38 +18,40 @@ export default function AnalysisProgress({ steps, brief, onCancel }: Props) {
       }}
     >
       <div
-        className="px-6 py-4 border-b flex-shrink-0"
+        className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0"
         style={{ borderColor: "var(--border)" }}
       >
-        <h2
-          className="text-lg font-semibold"
-          style={{ color: "var(--foreground)" }}
-        >
-          Analyzing Patent Landscape
-        </h2>
-        <p
-          className="text-xs mt-0.5 truncate"
-          style={{ color: "var(--muted)" }}
-        >
-          {brief}
-        </p>
+        <div className="min-w-0">
+          <h2
+            className="text-lg font-semibold"
+            style={{ color: "var(--foreground)" }}
+          >
+            Analyzing Patent Landscape
+          </h2>
+          <p
+            className="text-xs mt-0.5 truncate"
+            style={{ color: "var(--muted)" }}
+          >
+            {brief}
+          </p>
+        </div>
+        {onCancel && (
+          <button
+            onClick={onCancel}
+            className="text-xs py-1.5 px-4 rounded-lg transition-colors hover:opacity-80 flex-shrink-0 ml-4"
+            style={{
+              background: "var(--surface-2)",
+              border: "1px solid var(--border)",
+              color: "var(--muted)",
+            }}
+          >
+            Cancel
+          </button>
+        )}
       </div>
 
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="flex flex-col gap-5 w-full max-w-md">
-          {onCancel && (
-            <button
-              onClick={onCancel}
-              className="text-xs py-1.5 px-4 rounded-lg mb-2 self-end transition-colors hover:opacity-80"
-              style={{
-                background: "var(--surface-2)",
-                border: "1px solid var(--border)",
-                color: "var(--muted)",
-              }}
-            >
-              Cancel
-            </button>
-          )}
           {steps.map((step) => (
             <div key={step.step} className="flex items-start gap-3">
               {/* Status icon */}
