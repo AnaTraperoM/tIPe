@@ -424,9 +424,15 @@ export default function PatentClusterMap({
         if (isSel || alpha > 0.1) ctx.shadowBlur = 0;
 
         // Stroke rings for special dots only
-        if (isSel || inCompare) {
+        if (isSel) {
           ctx.beginPath();
-          ctx.arc(cx, cy, r + 0.5 / t.k, 0, Math.PI * 2);
+          ctx.arc(cx, cy, r + 2 / t.k, 0, Math.PI * 2);
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 2.5 / t.k;
+          ctx.stroke();
+        } else if (inCompare) {
+          ctx.beginPath();
+          ctx.arc(cx, cy, r + 1 / t.k, 0, Math.PI * 2);
           ctx.strokeStyle = "rgba(255,255,255,0.8)";
           ctx.lineWidth = 1.5 / t.k;
           ctx.stroke();
