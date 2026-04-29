@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
 import PatentClusterMap from "./components/PatentClusterMap";
@@ -98,6 +98,7 @@ export default function Home() {
   const [ftoLoading, setFtoLoading] = useState(false);
   const [ftoProgress, setFtoProgress] = useState<FTOProgress[]>([]);
   const [ftoIdeaBrief, setFtoIdeaBrief] = useState("");
+  const ftoAbortRef = useRef<AbortController | null>(null);
   const [plugCreatePatents, setPlugCreatePatents] = useState<Map<string, Patent>>(new Map());
   const [plugCreateResult, setPlugCreateResult] = useState<PlugCreateResult | null>(null);
   const [plugCreateLoading, setPlugCreateLoading] = useState(false);
@@ -129,7 +130,7 @@ export default function Home() {
 
   const showError = useCallback((msg: string) => {
     setError(msg);
-    setTimeout(() => setError(null), 4000);
+    setTimeout(() => setError(null), 8000);
   }, []);
 
   const handleGroupSummarize = useCallback(async (patents?: Patent[]) => {
@@ -457,6 +458,10 @@ export default function Home() {
       setTimeout(() => updateProgress(["search", "screening", "claims", "report"][i] as FTOProgress["step"]), d)
     );
 
+    const controller = new AbortController();
+    ftoAbortRef.current = controller;
+    const timeout = setTimeout(() => controller.abort(), 120000); // 2 min timeout
+
     try {
       let content = data.content;
       if (data.file) {
@@ -467,19 +472,30 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ brief: data.brief, content, patentCount: data.patentCount }),
+        signal: controller.signal,
       });
       if (!res.ok) throw new Error("FTO analysis failed");
       const report: FTOReport = await res.json();
       setFtoReport(report);
       setFtoProgress(prev => prev.map(s => ({ ...s, status: "done" as const })));
     } catch (err) {
-      showError("FTO analysis failed. Please try again.");
+      if ((err as Error).name === "AbortError") {
+        showError("Analysis timed out or was cancelled. Please try again.");
+      } else {
+        showError("FTO analysis failed. Please try again.");
+      }
       console.error(err);
     } finally {
+      clearTimeout(timeout);
+      ftoAbortRef.current = null;
       timers.forEach(clearTimeout);
       setFtoLoading(false);
     }
   }, [showError]);
+
+  const handleFTOCancel = useCallback(() => {
+    if (ftoAbortRef.current) ftoAbortRef.current.abort();
+  }, []);
 
   // ── Plug & Create ──
   const handlePlugCreateToggle = useCallback((patent: Patent) => {
@@ -587,7 +603,7 @@ export default function Home() {
               />
             )}
             {showProgressPanel && (
-              <AnalysisProgress steps={ftoProgress} brief={ftoIdeaBrief} />
+              <AnalysisProgress steps={ftoProgress} brief={ftoIdeaBrief} onCancel={handleFTOCancel} />
             )}
             {showReportPanel && ftoReport && (
               <LandscapeReport

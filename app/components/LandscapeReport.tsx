@@ -1,8 +1,16 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { Download, Home, MapPin } from "lucide-react";
 import type { FTOReport } from "@/app/lib/types";
+
+/** Decode HTML entities like &#39; &amp; &lt; etc. */
+function decodeHtmlEntities(text: string): string {
+  if (typeof document === "undefined") return text.replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n))).replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCharCode(parseInt(h, 16))).replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&apos;/g, "'");
+  const el = document.createElement("textarea");
+  el.innerHTML = text;
+  return el.value;
+}
 
 interface Props {
   report: FTOReport;
@@ -44,17 +52,11 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
     >
       {/* Sticky header */}
       <div
-        className="flex items-center justify-between px-6 py-3 border-b flex-shrink-0"
+        className="px-6 py-3 border-b flex-shrink-0"
         style={{ borderColor: "var(--border)" }}
       >
-        <div className="flex-1 min-w-0">
-          <h2
-            className="text-lg font-semibold truncate"
-            style={{ color: "var(--foreground)" }}
-          >
-            {report.brief}
-          </h2>
-          <div className="flex items-center gap-2 mt-0.5">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
             <span className="text-xs" style={{ color: "var(--muted)" }}>
               {new Date(report.timestamp).toLocaleDateString()}
             </span>
@@ -68,46 +70,65 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
             >
               Non-binding — not legal advice
             </span>
+            {report.isLocalFallback && (
+              <span
+                className="text-xs px-1.5 py-0.5 rounded"
+                style={{
+                  background: "rgba(232,212,77,0.1)",
+                  color: "#E8D44D",
+                  fontSize: 10,
+                }}
+                title="AI analysis was unavailable. This report uses keyword matching against cached patents."
+              >
+                Basic analysis (AI unavailable)
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={onViewOnMap}
+              className="flex items-center gap-1.5 text-xs py-1.5 px-3 rounded-lg transition-colors hover:opacity-80"
+              style={{
+                background: "var(--surface-2)",
+                border: "1px solid var(--border)",
+                color: "var(--muted)",
+              }}
+            >
+              <MapPin size={12} />
+              View on Map
+            </button>
+            <button
+              onClick={handleDownloadPDF}
+              className="flex items-center gap-1.5 text-xs py-1.5 px-3 rounded-lg transition-colors hover:opacity-80"
+              style={{
+                background: "var(--surface-2)",
+                border: "1px solid var(--border)",
+                color: "var(--muted)",
+              }}
+            >
+              <Download size={12} />
+              Download PDF
+            </button>
+            <button
+              onClick={onMainMenu}
+              className="flex items-center gap-1.5 text-xs py-1.5 px-3 rounded-lg transition-colors hover:opacity-80"
+              style={{
+                background: "var(--surface-2)",
+                border: "1px solid var(--border)",
+                color: "var(--muted)",
+              }}
+            >
+              <Home size={12} />
+              Main Menu
+            </button>
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0 ml-4">
-          <button
-            onClick={onViewOnMap}
-            className="flex items-center gap-1.5 text-xs py-1.5 px-3 rounded-lg transition-colors hover:opacity-80"
-            style={{
-              background: "var(--surface-2)",
-              border: "1px solid var(--border)",
-              color: "var(--muted)",
-            }}
-          >
-            <MapPin size={12} />
-            View on Map
-          </button>
-          <button
-            onClick={handleDownloadPDF}
-            className="flex items-center gap-1.5 text-xs py-1.5 px-3 rounded-lg transition-colors hover:opacity-80"
-            style={{
-              background: "var(--surface-2)",
-              border: "1px solid var(--border)",
-              color: "var(--muted)",
-            }}
-          >
-            <Download size={12} />
-            Download PDF
-          </button>
-          <button
-            onClick={onMainMenu}
-            className="flex items-center gap-1.5 text-xs py-1.5 px-3 rounded-lg transition-colors hover:opacity-80"
-            style={{
-              background: "var(--surface-2)",
-              border: "1px solid var(--border)",
-              color: "var(--muted)",
-            }}
-          >
-            <Home size={12} />
-            Main Menu
-          </button>
-        </div>
+        <h2
+          className="text-lg font-semibold"
+          style={{ color: "var(--foreground)" }}
+        >
+          {report.brief}
+        </h2>
       </div>
 
       {/* Scrollable report body */}
@@ -407,7 +428,7 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
                       className="text-xs leading-relaxed mb-2 italic"
                       style={{ color: "var(--muted)" }}
                     >
-                      &ldquo;{claim.claimText}&rdquo;
+                      &ldquo;{decodeHtmlEntities(claim.claimText)}&rdquo;
                     </p>
                     <div>
                       <div
@@ -437,8 +458,8 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
             >
               F. Patent List
             </div>
-            <div className="overflow-x-auto rounded-xl overflow-hidden">
-              <table className="w-full text-sm" style={{ borderCollapse: "collapse" }}>
+            <div className="overflow-x-auto rounded-xl" style={{ border: "1px solid var(--border)" }}>
+              <table className="text-sm" style={{ borderCollapse: "collapse", minWidth: 700 }}>
                 <thead>
                   <tr style={{ borderBottom: "1px solid var(--border)" }}>
                     {["#", "Patent ID", "Title", "Status", "Assignee", "Relevance", "Year"].map(
@@ -481,7 +502,7 @@ export default function LandscapeReport({ report, onMainMenu, onViewOnMap }: Pro
                             maxWidth: 200,
                           }}
                         >
-                          <span className="truncate block">{p.title}</span>
+                          <span className="truncate block">{decodeHtmlEntities(p.title)}</span>
                         </td>
                         <td className="py-3 px-4">
                           <span

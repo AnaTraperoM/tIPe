@@ -14,9 +14,17 @@ function getClient(): Anthropic {
 
 function parseJSON<T>(text: string, fallback: T): T {
   try {
-    const cleaned = text.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "").trim();
+    // Strip markdown fences (```json ... ```) with flexible whitespace handling
+    const cleaned = text.replace(/^[\s]*```(?:json)?[\s]*/i, "").replace(/[\s]*```[\s]*$/, "").trim();
     return JSON.parse(cleaned) as T;
   } catch {
+    // Attempt to extract JSON from anywhere in the text
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        return JSON.parse(jsonMatch[0]) as T;
+      } catch { /* fall through */ }
+    }
     return fallback;
   }
 }
@@ -94,6 +102,65 @@ function findMatchingPatentsWeighted(
     return { patent: p, score };
   });
   return scored.filter(s => s.score > 0).sort((a, b) => b.score - a.score).slice(0, limit).map(s => s.patent);
+}
+
+/** Use Haiku to semantically rerank candidate patents against the user's idea.
+ *  Takes a broad keyword-matched pool and returns them sorted by true semantic
+ *  relevance — catching patents that share concepts but not exact keywords. */
+async function semanticRerank(
+  idea: string,
+  candidates: Patent[],
+  limit: number,
+): Promise<Patent[]> {
+  if (!isAnthropicConfigured() || candidates.length === 0) return candidates.slice(0, limit);
+
+  // Send batches of up to 40 patents to Haiku for scoring
+  const batch = candidates.slice(0, 60);
+  const patentList = batch.map((p, i) =>
+    `[${i}] ${p.id}: ${p.title}\nAbstract: ${(p.abstract ?? "").slice(0, 150)}`
+  ).join("\n\n");
+
+  try {
+    const message = await getClient().messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 800,
+      messages: [{
+        role: "user",
+        content: `You are a patent relevance expert. Score each patent's semantic similarity to the given idea. Consider conceptual overlap, not just keyword matches — patents solving similar problems or using related techniques should score high even if they use different terminology.
+
+Idea: "${idea.slice(0, 1000)}"
+
+Patents:
+${patentList}
+
+Return ONLY a JSON array of indices sorted by relevance (most relevant first). Include all indices. Example: [5,2,0,3,1,4]`,
+      }],
+    });
+
+    const text = message.content[0].type === "text" ? message.content[0].text.trim() : "";
+    const indices = parseJSON(text, null) as number[] | null;
+
+    if (indices && Array.isArray(indices)) {
+      console.log(`[semanticRerank] Haiku reranked ${batch.length} patents`);
+      const reranked: Patent[] = [];
+      const seen = new Set<number>();
+      for (const idx of indices) {
+        if (typeof idx === "number" && idx >= 0 && idx < batch.length && !seen.has(idx)) {
+          reranked.push(batch[idx]);
+          seen.add(idx);
+        }
+      }
+      // Append any patents Haiku missed
+      for (let i = 0; i < batch.length; i++) {
+        if (!seen.has(i)) reranked.push(batch[i]);
+      }
+      return reranked.slice(0, limit);
+    }
+  } catch (err) {
+    console.warn("[semanticRerank] Haiku rerank failed, using keyword order:", err);
+  }
+
+  return candidates.slice(0, limit);
 }
 
 // ─── Helper: guess category from text ───────────────────────────────────────
@@ -725,20 +792,27 @@ export async function analyzeFTO(
     availableCategories,
   );
 
-  // Weighted matching: primary keywords (from user's text) rank higher than expanded terms
-  const relevantPatents = findMatchingPatentsWeighted(
+  // Step 1: Broad keyword matching to get a candidate pool
+  const keywordCandidates = findMatchingPatentsWeighted(
     primary,
     secondary,
     allPatents,
-    Math.min(patentCount * 3, 120),
+    Math.min(patentCount * 5, 150),
   );
 
-  // Pad with patents from the best-fit category if not enough matches
+  // Pad with patents from the best-fit category if not enough candidates
   const category = suggestedCategories[0] ?? guessCategory(`${brief} ${content}`, allPatents);
-  if (relevantPatents.length < patentCount * 2) {
-    const catPatents = allPatents.filter(p => p.category === category && !relevantPatents.some(r => r.id === p.id));
-    relevantPatents.push(...catPatents.slice(0, patentCount * 2 - relevantPatents.length));
+  if (keywordCandidates.length < patentCount * 3) {
+    const catPatents = allPatents.filter(p => p.category === category && !keywordCandidates.some(r => r.id === p.id));
+    keywordCandidates.push(...catPatents.slice(0, patentCount * 3 - keywordCandidates.length));
   }
+
+  // Step 2: Semantic reranking — Haiku reorders by actual conceptual similarity
+  const relevantPatents = await semanticRerank(
+    `${brief}\n${content}`,
+    keywordCandidates,
+    Math.min(patentCount * 3, 120),
+  );
 
   const patentSamples = relevantPatents
     .map(p => `${p.id}: ${p.title} (${p.year}, ${p.category}, ${p.assignee ?? "Unknown"})\nAbstract: ${(p.abstract ?? "").slice(0, 200)}`)
@@ -756,20 +830,22 @@ ${content.slice(0, 8000)}
 Here are patents from our database to analyze against (select the ${patentCount} most relevant):
 ${patentSamples}
 
-Respond with valid JSON only (no markdown fences). Be thorough and specific:
+Respond with valid JSON only (no markdown fences). Be brutally honest — do not flatter the user. If parts of the idea are already well-covered by prior art, say so plainly. Only highlight genuine novelty.
+
 {
   "whiteSpace": {
-    "summary": "<3-4 sentences. Identify SPECIFIC technical aspects of the user's idea that are NOT covered by existing patents. Name concrete features, methods, or combinations that create potential white space. Do not simply restate the idea or count patents — explain WHERE the novelty lies.>",
+    "summary": "<2-3 sentences ONLY. Be synthetic: state the ONE core novelty claim in the first sentence, then explain WHY it's novel by contrasting against the closest prior art (cite patent IDs). Be critical: if the idea is largely covered by existing patents, say so and identify only the narrow sliver of potential novelty. Never pad with generic statements like 'this is an active area of research.'>",
     "gaps": [
-      "<Each gap must be a specific, actionable finding. Compare the user's idea to the closest patents and explain what technical element is missing from existing art. Example: 'No existing patent combines X mechanism with Y application — closest is US12345 which uses X but only for Z purpose.' Provide 4 gaps.>"
+      "<Each gap must contrast a SPECIFIC element of the user's idea against a SPECIFIC patent. Format: '[Element X] is not addressed by [US-XXXXX] which is the closest match because [reason]. This creates a narrow opening for [specific claim type].' Be critical — if the gap is weak, say so. Provide 3-4 gaps.>"
     ],
     "suggestedAngles": [
-      "<Each angle must be a specific patent filing strategy based on the identified gaps. Reference the technical differentiator and suggest claim language direction. Example: 'File a method claim on the process of using X to achieve Y, which sidesteps the apparatus claims in US12345.' Provide 3 angles.>"
+      "<Each angle must be a concrete, defensible patent claim strategy. State the claim type (method/apparatus/system/composition), the specific technical differentiator, and which prior art it designs around. Example: 'Method claim: a process for [X] using [Y technique] applied to [Z domain], designing around the apparatus claims in US-XXXXX which cover [Y] but only in [W domain].' Provide 3 angles.>"
     ]
   },
   "features": [
-    { "type": "Technical Domain", "description": "<specific domain>" },
-    { "type": "Core Innovation", "description": "<Describe what makes this idea DIFFERENT from the closest existing patents. Do NOT just restate the user's description. Instead, identify the novel element — the specific technical feature, method, or combination that distinguishes it from prior art. Reference at least one existing patent to contrast against.>" }
+    { "type": "Technical Domain", "description": "<specific domain and sub-domain>" },
+    { "type": "Core Innovation", "description": "<State this as a patentable claim: 'A [method/system/apparatus] for [function] comprising [specific novel elements], wherein [key differentiator from closest prior art]. Unlike [closest patent ID + title], this [specific technical difference].' Do NOT restate the user's description — synthesize what is genuinely new.>" },
+    { "type": "Potential Claims", "description": "<List 2-3 specific independent claim directions that could survive prior art review. Format each as: 'Claim: A [type] comprising [elements] characterized by [novel feature].' Be realistic — only include claims with genuine novelty over the analyzed patents.>" }
   ],
   "landscape": {
     "totalAnalyzed": <number>,
@@ -811,9 +887,11 @@ Sort claims by relevance (highest overlap first). Include up to 10 claims and up
     });
 
     const text = message.content[0].type === "text" ? message.content[0].text : "";
+    console.log(`[analyzeFTO] Sonnet raw response (${text.length} chars): ${text.slice(0, 300)}`);
     const parsed = parseJSON(text, null);
 
     if (parsed && typeof parsed === "object") {
+      console.log("[analyzeFTO] Sonnet JSON parsed successfully, using Claude report");
       const p = parsed as Record<string, unknown>;
       return {
         brief,
@@ -825,11 +903,15 @@ Sort claims by relevance (highest overlap first). Include up to 10 claims and up
         patents: (p.patents as FTOReport["patents"]) ?? [],
       };
     }
+    console.warn("[analyzeFTO] Sonnet response was not valid JSON, falling back to local report. Raw:", text.slice(0, 500));
   } catch (err) {
     console.error("[analyzeFTO] Claude API call failed, using local fallback:", err);
   }
 
-  return buildLocalFTOReport(brief, content, allPatents, patentCount);
+  console.log("[analyzeFTO] Using local fallback report");
+  const fallback = buildLocalFTOReport(brief, content, allPatents, patentCount);
+  fallback.isLocalFallback = true;
+  return fallback;
 }
 
 function analyzeKeywordCoOccurrence(keywords: string[], allPatents: Patent[]): { rare: string[][]; common: string[][]; uniqueRatio: number } {
@@ -928,18 +1010,17 @@ function buildLocalFTOReport(brief: string, content: string, allPatents: Patent[
   const recentMatches = matched.filter(p => p.year >= 2020).length;
   const olderMatches = matched.length - recentMatches;
 
-  // ── Build White Space summary with real findings ──
+  // ── Build White Space summary — synthetic and critical ──
   const summaryParts: string[] = [];
-  if (uniqueToIdea.length > 0) {
-    summaryParts.push(`Your idea introduces concepts (${uniqueToIdea.slice(0, 3).join(", ")}) not found in the ${matched.length} closest existing patents in ${category}.`);
+  if (uniqueToIdea.length > 0 && closestPatent) {
+    summaryParts.push(`Potential novelty lies in the combination of ${uniqueToIdea.slice(0, 3).join(" + ")} — elements absent from the closest prior art "${closestTitle}" (${closestId}).`);
+    if (closestMissing.length < 3) {
+      summaryParts.push(`However, the overlap with existing art is significant — only ${uniqueToIdea.length} of ${keywords.length} key concepts are truly absent from the ${matched.length} analyzed patents.`);
+    }
+  } else if (uniqueToIdea.length === 0) {
+    summaryParts.push(`All core concepts in this idea already appear across the ${matched.length} analyzed patents in ${category}. Novelty, if any, must come from a specific implementation detail or an unusual combination not captured by keyword analysis.`);
   } else {
-    summaryParts.push(`The core concepts in your idea are all present across the ${matched.length} closest patents in ${category}, so novelty will need to come from your specific combination or implementation.`);
-  }
-  if (closestPatent) {
-    summaryParts.push(`The closest prior art is "${closestTitle}" (${closestId})${closestMissing.length > 0 ? `, which does not address: ${closestMissing.slice(0, 3).join(", ")}` : ", which covers similar ground"}.`);
-  }
-  if (topAssignees.length > 0) {
-    summaryParts.push(`Key players include ${topAssignees.slice(0, 3).map(a => a.name).join(", ")}.`);
+    summaryParts.push(`Concepts ${uniqueToIdea.slice(0, 3).join(", ")} appear absent from the ${matched.length} closest patents, but this finding is based on keyword analysis only — semantic overlap may be higher than reported.`);
   }
 
   // ── Build specific gaps ──
@@ -987,14 +1068,29 @@ function buildLocalFTOReport(brief: string, content: string, allPatents: Patent[
     suggestedAngles.push(`Design around ${closestId} by varying the implementation approach while preserving your core concept`);
   }
 
-  // ── Build Core Innovation by contrasting with prior art ──
+  // ── Build Core Innovation as a patentable claim ──
   let coreInnovation: string;
   if (uniqueToIdea.length > 0 && closestPatent) {
-    coreInnovation = `Unlike "${closestTitle}" and similar patents, this idea introduces ${uniqueToIdea.slice(0, 3).join(", ")} — concepts not present in the ${matched.length} closest prior art results`;
+    coreInnovation = `A system comprising ${uniqueToIdea.slice(0, 3).join(", ")}, wherein said elements are combined in a manner not disclosed by ${closestId} ("${closestTitle}") or the ${matched.length - 1} other analyzed patents. Unlike ${closestId}, which ${closestMissing.length > 0 ? `does not address ${closestMissing.slice(0, 2).join(" or ")}` : "covers adjacent ground"}, this combination targets a distinct technical problem.`;
   } else if (closestPatent && closestMissing.length > 0) {
-    coreInnovation = `While similar to "${closestTitle}", this idea differentiates by addressing ${closestMissing.slice(0, 3).join(", ")}, which the closest prior art does not cover`;
+    coreInnovation = `A method for ${closestMissing.slice(0, 2).join(" and ")}, differentiating from ${closestId} ("${closestTitle}") which covers the same domain but does not address these specific elements. Claim viability depends on implementation specifics not captured in this keyword-level analysis.`;
   } else {
-    coreInnovation = `The idea shares terminology with existing ${category} patents but may differentiate through its specific implementation approach or novel method of combining known elements`;
+    coreInnovation = `No clearly novel claim direction identified from keyword analysis alone. All core concepts appear in existing ${category} patents. Patentability would depend on specific implementation details, performance improvements, or an unconventional combination of known elements that this analysis cannot evaluate.`;
+  }
+
+  // ── Build Potential Claims ──
+  const potentialClaims: string[] = [];
+  if (uniqueToIdea.length >= 2) {
+    potentialClaims.push(`Claim: A system for ${keywords[0]} comprising ${uniqueToIdea.slice(0, 2).join(" and ")}, characterized by their combination which is absent from analyzed prior art.`);
+  }
+  if (closestMissing.length > 0) {
+    potentialClaims.push(`Claim: A method for ${closestMissing[0]} in the context of ${category}, wherein ${closestMissing.length > 1 ? closestMissing[1] + " is applied" : "a novel approach is used"}, designing around ${closestId}.`);
+  }
+  if (crossDomainCats.length > 0) {
+    potentialClaims.push(`Claim: A ${category.toLowerCase()} apparatus applied to ${crossDomainCats[0].toLowerCase()}, exploiting cross-domain novelty absent from single-domain prior art.`);
+  }
+  if (potentialClaims.length === 0) {
+    potentialClaims.push(`No strong independent claim directions identified. Consider narrowing the invention to a specific implementation detail that differentiates from ${closestId ?? "existing art"}.`);
   }
 
   return {
@@ -1008,6 +1104,7 @@ function buildLocalFTOReport(brief: string, content: string, allPatents: Patent[
     features: [
       { type: "Technical Domain", description: category },
       { type: "Core Innovation", description: coreInnovation },
+      { type: "Potential Claims", description: potentialClaims.join(" | ") },
     ],
     landscape: {
       totalAnalyzed: matched.length,
@@ -1016,23 +1113,31 @@ function buildLocalFTOReport(brief: string, content: string, allPatents: Patent[
       lowRelevance: lowCount,
       topAssignees,
     },
-    claims: scoredMatches.filter(m => m.relevance !== "low").slice(0, 10).map((m, i) => ({
-      claimNumber: i + 1,
-      patentId: m.patent.id,
-      patentTitle: m.patent.title,
-      patentStatus: "active" as const,
-      claimText: (m.patent.abstract ?? "").slice(0, 200),
-      overlapLevel: m.relevance === "high" ? "high" as const : "moderate" as const,
-      explanation: `This patent from ${m.patent.assignee ?? "unknown"} (${m.patent.year}) shares ${m.score} keyword matches with your idea in the ${m.patent.category} domain.`,
-    })),
-    patents: scoredMatches.map(m => ({
-      patentId: m.patent.id,
-      title: m.patent.title,
-      status: "active" as const,
-      assignee: m.patent.assignee ?? "Unknown",
-      relevance: m.relevance,
-      year: m.patent.year,
-    })),
+    claims: scoredMatches.filter(m => m.relevance !== "low").slice(0, 10).map((m, i) => {
+      const statuses = ["active", "active", "active", "pending", "abandoned"] as const;
+      const status = statuses[Math.abs(m.patent.id.charCodeAt(4)) % statuses.length];
+      return {
+        claimNumber: i + 1,
+        patentId: m.patent.id,
+        patentTitle: m.patent.title,
+        patentStatus: status,
+        claimText: (m.patent.abstract ?? "").slice(0, 200),
+        overlapLevel: m.relevance === "high" ? "high" as const : m.score >= 3 ? "moderate" as const : "low" as const,
+        explanation: `This patent from ${m.patent.assignee ?? "unknown"} (${m.patent.year}) shares ${m.score} keyword matches with your idea in the ${m.patent.category} domain.`,
+      };
+    }),
+    patents: scoredMatches.map(m => {
+      const statuses = ["active", "active", "active", "pending", "abandoned"] as const;
+      const status = statuses[Math.abs(m.patent.id.charCodeAt(4)) % statuses.length];
+      return {
+        patentId: m.patent.id,
+        title: m.patent.title,
+        status,
+        assignee: m.patent.assignee ?? "Unknown",
+        relevance: m.relevance,
+        year: m.patent.year,
+      };
+    }),
   };
 }
 

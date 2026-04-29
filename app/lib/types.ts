@@ -135,6 +135,7 @@ export interface FTOPatentRow {
 export interface FTOReport {
   brief: string;
   timestamp: string;
+  isLocalFallback?: boolean;
   whiteSpace: {
     summary: string;
     gaps: string[];
