@@ -55,23 +55,73 @@ export async function correctGrammar(text: string): Promise<string> {
   }
 }
 
+// ─── Shared stop words & generic terms ────────────────────────────────────────
+export const STOP_WORDS = new Set([
+  // Standard English stops
+  "the","a","an","and","or","but","in","on","at","to","for","of","with","by","from",
+  "is","are","was","were","be","been","being","have","has","had","do","does","did",
+  "will","would","could","should","may","might","shall","can","that","this","these",
+  "those","it","its","not","no","nor","as","such","than","also","each","which","their",
+  "them","they","there","then","so","if","when","what","how","all","any","both","other",
+  "into","through","during","before","after","above","below","between","about","up",
+  "out","over","under","more","most","some","one","two","first","second","new",
+  // Common verbs that match too broadly in patents
+  "used","use","uses","using","based","provide","provides","provided","providing",
+  "include","includes","including","make","makes","made","making","enable","enables",
+  "track","tracks","tracking","monitor","monitors","monitoring","detect","detects",
+  "connect","connected","connecting","generate","generates","receive","receives",
+  "determine","determines","obtain","obtains","transmit","transmits","process",
+  "create","creates","display","displays","store","stores","send","sends","allow",
+  // Patent boilerplate
+  "method","system","device","apparatus","comprising","according","wherein","configured",
+  "embodiment","implementation","aspect","present","disclosure","invention","thereof",
+  // Overly broad technical terms (match thousands of patents)
+  "data","information","signal","input","output","user","control","unit","module",
+  "component","element","portion","plurality","means","step","claim","described",
+]);
+
+/** Terms so generic they appear in most patents — score them at 0.25x weight */
+export const GENERIC_TERMS = new Set([
+  "machine","learning","algorithm","sensor","sensors","wireless","network","digital",
+  "electronic","software","hardware","computer","computing","processing","real-time",
+  "automated","intelligent","smart","adaptive","dynamic","model","analysis","platform",
+  "interface","application","communication","protocol","optimization","detection",
+]);
+
 // ─── Helper: keyword extraction from text ───────────────────────────────────
 function extractKeywords(text: string): string[] {
-  const stops = new Set(["the","a","an","and","or","but","in","on","at","to","for","of","with","by","from","is","are","was","were","be","been","being","have","has","had","do","does","did","will","would","could","should","may","might","shall","can","that","this","these","those","it","its","not","no","nor","as","such","than","also","each","which","their","them","they","there","then","so","if","when","what","how","all","any","both","other","into","through","during","before","after","above","below","between","about","up","out","over","under","more","most","some","one","two","first","second","new","used","use","using","based","method","system","device","apparatus","comprising","includes","including","according","wherein","configured"]);
-  const words = text.toLowerCase().replace(/[^a-z0-9\s-]/g, " ").split(/\s+/).filter(w => w.length > 2 && !stops.has(w));
+  const words = text.toLowerCase().replace(/[^a-z0-9\s-]/g, " ").split(/\s+/).filter(w => w.length > 2 && !STOP_WORDS.has(w));
   const freq: Record<string, number> = {};
   for (const w of words) freq[w] = (freq[w] ?? 0) + 1;
   return Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([w]) => w);
 }
 
+// ─── Helper: keyword weight (generic terms get penalized) ─────────────────────
+function kwWeight(kw: string): number {
+  return GENERIC_TERMS.has(kw) ? 0.25 : 1;
+}
+
 // ─── Helper: find patents matching keywords ─────────────────────────────────
 function findMatchingPatents(keywords: string[], allPatents: Patent[], limit: number): Patent[] {
+  // Count how many patents each keyword matches — penalize overly common matches
+  const kwDocFreq: Record<string, number> = {};
+  for (const kw of keywords) {
+    kwDocFreq[kw] = allPatents.filter(p =>
+      `${p.title} ${p.abstract ?? ""}`.toLowerCase().includes(kw)
+    ).length;
+  }
+  const totalDocs = allPatents.length;
+
   const scored = allPatents.map(p => {
-    const haystack = `${p.title} ${p.abstract ?? ""} ${p.category}`.toLowerCase();
+    const titleLower = p.title.toLowerCase();
+    const haystack = `${titleLower} ${(p.abstract ?? "").toLowerCase()} ${p.category.toLowerCase()}`;
     let score = 0;
     for (const kw of keywords) {
-      if (haystack.includes(kw)) score += 1;
-      if (p.title.toLowerCase().includes(kw)) score += 2; // title matches are stronger
+      // IDF-inspired: keywords matching fewer documents score higher
+      const idf = kwDocFreq[kw] > 0 ? Math.log(totalDocs / kwDocFreq[kw]) : 1;
+      const weight = kwWeight(kw) * Math.min(idf, 5); // cap IDF at 5x
+      if (titleLower.includes(kw)) score += 3 * weight;
+      else if (haystack.includes(kw)) score += 1 * weight;
     }
     return { patent: p, score };
   });
@@ -79,25 +129,40 @@ function findMatchingPatents(keywords: string[], allPatents: Patent[], limit: nu
 }
 
 /** Weighted variant: primary keywords (from the user's text) score 3x more than
- *  secondary keywords (from Claude's semantic expansion). This ensures exact
- *  matches still rank highest while the expanded terms cast a wider net. */
+ *  secondary keywords (from Claude's semantic expansion). Generic terms like
+ *  "machine", "sensor", "algorithm" are penalized to avoid drowning
+ *  domain-specific results. IDF weighting ensures rare terms rank higher. */
 function findMatchingPatentsWeighted(
   primary: string[],
   secondary: string[],
   allPatents: Patent[],
   limit: number,
 ): Patent[] {
+  // Precompute document frequency for IDF
+  const allKws = [...new Set([...primary, ...secondary])];
+  const kwDocFreq: Record<string, number> = {};
+  for (const kw of allKws) {
+    kwDocFreq[kw] = allPatents.filter(p =>
+      `${p.title} ${p.abstract ?? ""}`.toLowerCase().includes(kw)
+    ).length;
+  }
+  const totalDocs = allPatents.length;
+
   const scored = allPatents.map(p => {
     const titleLower = p.title.toLowerCase();
     const haystack = `${titleLower} ${(p.abstract ?? "").toLowerCase()} ${p.category.toLowerCase()}`;
     let score = 0;
     for (const kw of primary) {
-      if (titleLower.includes(kw)) score += 6;   // primary + title
-      else if (haystack.includes(kw)) score += 3; // primary + abstract/category
+      const idf = kwDocFreq[kw] > 0 ? Math.log(totalDocs / kwDocFreq[kw]) : 1;
+      const weight = kwWeight(kw) * Math.min(idf, 5);
+      if (titleLower.includes(kw)) score += 6 * weight;
+      else if (haystack.includes(kw)) score += 3 * weight;
     }
     for (const kw of secondary) {
-      if (titleLower.includes(kw)) score += 2;   // secondary + title
-      else if (haystack.includes(kw)) score += 1; // secondary + abstract/category
+      const idf = kwDocFreq[kw] > 0 ? Math.log(totalDocs / kwDocFreq[kw]) : 1;
+      const weight = kwWeight(kw) * Math.min(idf, 5);
+      if (titleLower.includes(kw)) score += 2 * weight;
+      else if (haystack.includes(kw)) score += 1 * weight;
     }
     return { patent: p, score };
   });

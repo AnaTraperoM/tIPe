@@ -1,6 +1,6 @@
 import type { SearchRequest, Patent } from "./types";
 import { computeCoordinates } from "./embeddings";
-import { correctGrammar } from "./anthropic";
+import { correctGrammar, STOP_WORDS, GENERIC_TERMS } from "./anthropic";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -215,7 +215,7 @@ export async function searchCachedPatents(query: string, limit: number = 200): P
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, " ")
     .split(/\s+/)
-    .filter(w => w.length > 2);
+    .filter(w => w.length > 2 && !STOP_WORDS.has(w));
 
   if (keywords.length === 0) return cached.slice(0, limit);
 
@@ -343,9 +343,8 @@ export async function vectorSearchByText(
   const correctedText = await correctGrammar(text);
 
   // Extract meaningful keywords (3+ chars, deduplicated, max 8)
-  const stopWords = new Set(["the", "and", "for", "that", "with", "this", "from", "are", "was", "were", "been", "have", "has", "had", "not", "but", "what", "all", "can", "her", "his", "one", "our", "out", "you", "use", "using", "based", "method", "system", "device", "apparatus"]);
   const keywords = [...new Set(
-    correctedText.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter(w => w.length > 3 && !stopWords.has(w))
+    correctedText.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter(w => w.length > 3 && !STOP_WORDS.has(w))
   )].slice(0, 8);
 
   if (keywords.length === 0) return [];
